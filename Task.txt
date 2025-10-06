@@ -1,0 +1,50 @@
+Task:
+Rewritten Task Description:
+- Develop a WordPress module to manage transactions with the following database schema:
+  - payment_methods table: id, name, slug, created_at, updated_at
+  - transactions table: id, datetime, payment_method, note, transaction_type (credit/debit), amount, created_by, created_at, updated_at, deleted_at
+- Implement the following functionalities:
+  - Create a transaction list with filters for payment method and transaction type (credit/debit).
+    - list of the transaction
+    - show tag for the today's sale
+  - Display the total amount for each payment method.
+  - Enable create and delete operations for transactions (credit and debit).
+  - Restrict module access to authorized users only.
+  - Show a daily dashboard summarizing transactions, including:
+    - Starting balance (N amount) in cash at the beginning of the day.
+    - Ending balance (M amount) in cash at the end of the day.
+
+
+
+Feature for the list screen:
+  - show drawer amount for today (amount we had today)
+  - today total in
+  - today total out
+  - single list of the transaction with in and out data for all the payment method
+  - filter for the date range , payment method, transaction type (in or out)
+  - based on listing show total
+  - while click on the row then show details in popup about that transaction
+  - add option of the delete transaction (use soft delete)
+  - in top add button for payment in/out
+    - show popup with the date, payment method, trasnaction type, note, amount to add the trsanction
+
+
+payment_methods:
+  id -> primary key
+  method_name
+  slug -> unique
+  created_at
+  updated_at
+
+transactions:
+  id -> primary key
+  payment_date
+  payment_method
+  note
+  transaction_type (credit/debit)
+  amount
+  created_by
+  created_at
+  updated_at
+  deleted_at
+
