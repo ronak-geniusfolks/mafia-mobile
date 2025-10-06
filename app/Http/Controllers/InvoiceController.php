@@ -62,7 +62,7 @@ class InvoiceController extends Controller
                 // If conversion fails, keep original value for validation to handle
             }
         }
-        
+
         if ($request->warranty_expiry_date) {
             try {
                 $convertedDate = Carbon::createFromFormat('d/m/Y', $request->warranty_expiry_date)->format('Y-m-d');
@@ -178,7 +178,7 @@ class InvoiceController extends Controller
     public function updateInvoice(Request $request, $id)
     {
         $invoice    = Invoice::findOrFail($id);
-        
+
         // Convert date format from dd/mm/yyyy to Y-m-d using Carbon
         if ($request->invoice_date) {
             try {
@@ -188,7 +188,7 @@ class InvoiceController extends Controller
                 // If conversion fails, keep original value for validation to handle
             }
         }
-        
+
         if ($request->warranty_expiry_date) {
             try {
                 $convertedDate = Carbon::createFromFormat('d/m/Y', $request->warranty_expiry_date)->format('Y-m-d');
@@ -197,13 +197,13 @@ class InvoiceController extends Controller
                 // If conversion fails, keep original value for validation to handle
             }
         }
-        
+
         // Validate dates after conversion
         $request->validate([
             'invoice_date' => 'required|date',
             'warranty_expiry_date' => 'nullable|date',
         ]);
-        
+
         $updateData = $request->all();
 
         // check if contact name or contact number is chagnges?

@@ -253,7 +253,6 @@ File: Layout
             self.initLayout();
         });
     },
-
     $.LeftSidebar = new LeftSidebar, $.LeftSidebar.Constructor = LeftSidebar
 }(window.jQuery),
 
@@ -344,7 +343,6 @@ function ($) {
        var self = this;
 
         var config = self.layout.getConfig();
-
         if (config) {
             $('input[type=radio][name=color-scheme-mode][value=' + config.mode + ']').prop('checked', true);
             $('input[type=radio][name=width][value=' + config.width + ']').prop('checked', true);
@@ -357,7 +355,6 @@ function ($) {
             $('input[type=radio][name=topbar-color][value=' + config.topbar.color + ']').prop('checked', true);
         }
     },
-
     /**
      * Toggles the right sidebar
      */
@@ -495,7 +492,6 @@ function ($) {
      */
     LayoutThemeApp.prototype.loadConfig = function() {
         var bodyConfig = JSON.parse(this.body.attr('data-layout') ? this.body.attr('data-layout') : '{}');
-
         var config = $.extend({}, {
             mode: "light",
             width: "fluid",
@@ -580,7 +576,6 @@ function ($) {
                 break;
             }
         }
-
         this.rightBar.selectOptionsFromConfig();
     }
 
@@ -851,7 +846,6 @@ function($) {
     },
     //
     $.Portlet = new Portlet, $.Portlet.Constructor = Portlet
-
 }(window.jQuery),
 
 function ($) {
