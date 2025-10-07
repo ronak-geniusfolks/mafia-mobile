@@ -43,7 +43,6 @@
         <!--- Sidemenu -->
         <div id="sidebar-menu">
             <ul id="side-menu">
-
                 <!-- Dashboard -->
                 @can('dashboard.view')
                     <li>
@@ -66,8 +65,8 @@
                             <ul class="nav-second-level">
                                 @can('purchases.view')
                                 <li><a href="{{ route('allpurchases') }}">All Stocks</a></li> @endcan
-                                @can('purchases.create')
-                                <li><a href="{{ route('purchase.create') }}">Add Stock</a></li> @endcan
+                                {{-- @can('purchases.create')
+                                <li><a href="{{ route('purchase.create') }}">Add Stock</a></li> @endcan --}}
                                 @can('purchases.import')
                                 <li><a href="{{ route('purchase.importform') }}">Import Stocks</a></li> @endcan
                             </ul>
@@ -139,7 +138,7 @@
                 @endcanany
 
                 <!-- Expenses -->
-                @canany(['expenses.view', 'expenses.create'])
+                {{-- @canany(['expenses.view', 'expenses.create'])
                     <li>
                         <a data-toggle="collapse" href="#expensesMenu" role="button" aria-expanded="false"
                             aria-controls="expensesMenu">
@@ -156,7 +155,7 @@
                             </ul>
                         </div>
                     </li>
-                @endcanany
+                @endcanany --}}
 
                 <!-- Finance -->
                 @can('transactions.view')

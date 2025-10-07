@@ -4,14 +4,14 @@
 <head>
 
     <meta charset="utf-8" />
-    <title>@yield('title') - Vision Mobile</title>
+    <title>@yield('title') - Mafia Mobile</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta content="● Buy-Sell-Exchange ● Vision Mobile" name="description" />
-    <meta content="Vision Mobile" name="author" />
+    <meta content="● Buy-Sell-Exchange ● Mafia Mobile" name="description" />
+    <meta content="Mafia Mobile" name="author" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- App favicon -->
-    <link rel="shortcut icon" href="{{ asset('assets/images/new_logo/favicon.ico')}}">
+    <link rel="shortcut icon" href="{{ asset('assets/images/new_logo/main_logo.png')}}">
 
     <!-- Plugins css -->
     <link href="{{ asset('assets/libs/selectize/css/selectize.bootstrap3.css') }}" rel="stylesheet" type="text/css" />
@@ -20,6 +20,9 @@
     <!-- App css -->
     <link href="{{ asset('assets/css/bootstrap.min.css') }}" rel="stylesheet" type="text/css"id="bs-default-stylesheet" />
     <link href="{{ asset('assets/css/app.min.css') }}" rel="stylesheet" type="text/css" id="app-default-stylesheet" />
+
+    <!-- Theme overrides -->
+    <link href="{{ asset('assets/css/theme-overrides.css') }}" rel="stylesheet" type="text/css" />
 
     <!-- <link href="{{ asset('assets/css/bootstrap-dark.min.css') }}" rel="stylesheet" type="text/css" id="bs-dark-stylesheet" disabled /> -->
     <link href="{{ asset('assets/css/app-dark.min.css') }}" rel="stylesheet" type="text/css" id="app-dark-stylesheet"
