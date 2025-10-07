@@ -68,10 +68,10 @@
         }
 
         .central-logo {
-            width: 80px;
-            height: 80px;
-            border: 2px solid #000;
-            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            /* border: 2px solid #000; */
+            /* border-radius: 50%; */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -86,16 +86,26 @@
             object-fit: contain;
         }
 
+        .invoice-body {
+            border: 1px solid #000;
+            padding: 10px;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 2;
+        }
+
         /* ---------- BILL OF SUPPLY SECTION ---------- */
         .bill-of-supply {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 20px;
+            font-size: 12px;
+            margin-bottom: 10px;
         }
 
         .bill-left {
             flex: 1;
+            text-align: center;
         }
 
         .bill-title {
@@ -118,17 +128,24 @@
 
         .bill-right {
             flex: 1;
-            text-align: right;
+            text-align: left;
+            align-items: center;
         }
 
-        .company-address {
-            font-size: 12px;
+        .company-info-line {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 3px;
             line-height: 1.4;
         }
 
-        .company-address .contact {
-            margin-top: 5px;
-            font-weight: bold;
+        .company-info-line strong {
+            width: 80px; /* fixed width to align titles */
+            display: inline-block;
+        }
+
+        .company-info-line span {
+            flex: 1;
         }
 
         /* ---------- INVOICE DETAILS SECTION ---------- */
@@ -140,16 +157,17 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 12px;
+            border: 1px solid #000; /* outer border */
         }
 
         .details-table td {
-            padding: 4px 8px;
-            border-bottom: 1px solid #000;
+            padding: 6px 8px;
+            border: 1px solid #000; /* gives neat box grid like your screenshot */
         }
 
         .details-table .label {
             font-weight: bold;
-            width: 30%;
+            width: 25%;
         }
 
         /* ---------- ITEMIZED BILLING TABLE ---------- */
@@ -239,6 +257,12 @@
             line-height: 1.3;
         }
 
+        .terms-header {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
         .terms-box ul {
             margin: 0;
             padding-left: 15px;
@@ -250,7 +274,7 @@
 
         .signature-section {
             width: 28%;
-            text-align: right;
+            text-align: center;
             padding-top: 10px;
             display: flex;
             flex-direction: column;
@@ -258,7 +282,8 @@
         }
 
         .signature-text {
-            font-size: 12px;
+            font-size: 20px;
+            font-weight: bold;
             margin-bottom: auto;
         }
 
@@ -288,8 +313,8 @@
         }
 
         .footer-logo {
-            width: 40px;
-            height: 40px;
+            width: 60px;
+            height: 60px;
             display: inline-block;
         }
 
@@ -300,10 +325,13 @@
         }
 
         /* ---------- PRINT FIXES ---------- */
+        /* while print make the page center */
+        /* add margin: 0 auto; */
         @media print {
             @page {
                 size: A4;
                 margin: 0;
+                margin: 0 auto;
             }
 
             body {
@@ -339,152 +367,176 @@
                 <div class="decorative-border">
                     <div class="border-text">{{ $companyNameUpper }}</div>
                     <div class="central-logo">
-                        <img src="{{asset('assets/images/visionlogo-wb.png')}}" alt="Company Logo">
+                        <img src="{{asset('assets/images/new_logo/main_logo.png')}}" alt="Company Logo">
                     </div>
                     <div class="border-text">{{ $companyNameUpper }}</div>
                 </div>
             </div>
 
-            <!-- Bill of Supply Section -->
-            <div class="bill-of-supply">
-                <div class="bill-left">
-                    <div class="bill-title">BILL OF SUPPLY</div>
-                    <div class="company-name">{{ $companyName }}</div>
-                    <div class="gst-info">
-                        <strong>GST NO:</strong> 24EGPPR3654J1ZS<br>
-                        Not eligible to collect tax on supplies
+            <div class="invoice-body">
+                <!-- Bill of Supply Section -->
+                <div class="bill-of-supply">
+                    <div class="bill-left">
+                        <div class="bill-title">BILL OF SUPPLY</div>
+                        <div class="company-name">{{ $companyName }}</div>
+                        <div class="gst-info">
+                            <strong>GST NO:</strong> 24DTVPD2928H1ZG<br>
+                            Not eligible to collect tax on supplies
+                        </div>
                     </div>
-                </div>
-                <div class="bill-right">
-                    <div class="company-address">
-                        Shop No 26, Ground Floor<br>
-                        Krish Residency-1, Nikol Naroad Road,<br>
-                        Nikol, Ahmedabad-382350, Gujarat.<br>
-                        <div class="contact">Contact Us: +91 98987-77764</div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Invoice and Client Details -->
-            <div class="invoice-details-section">
-                <table class="details-table">
-                    <tr>
-                        <td class="label">Date of Invoice:</td>
-                        <td>{{ date("F j, Y", strtotime($invoice->invoice_date)) }}</td>
-                        <td class="label">Invoice No.:</td>
-                        <td>{{ $invoice->invoice_no }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Client Name:</td>
-                        <td>{{ strtoupper($invoice->customer_name) }}</td>
-                        <td class="label">Address:</td>
-                        <td>{{ strtoupper($invoice->customer_address ?? 'N/A') }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">City & State:</td>
-                        <td>AHMEDABAD</td>
-                        <td class="label">Contact Number:</td>
-                        <td>{{ $invoice->customer_no ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">BILED BY:</td>
-                        <td>Mr {{ $invoice->user->name ?? 'Admin' }}</td>
-                        <td></td>
-                        <td></td>
-                    </tr>
+                    <div class="bill-right">
+                        <div class="company-info-line">
+                            <strong>Address:</strong>
+                            <span>GF-04, Parth Avenue, Nr. ONGC Avani Bhavan, Chandkheda, Ahmedabad - 380005.</span>
+                        </div>
+                        <div class="company-info-line">
+                            <strong>Contact Us:</strong>
+                            <span>+91 8901606060</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invoice and Client Details -->
+                <div class="invoice-details-section">
+                    <table class="details-table">
+                        <tr>
+                            <td class="label">Date of Invoice:</td>
+                            <td>{{ date("F j, Y", strtotime($invoice->invoice_date)) }}</td>
+                            <td class="label">Invoice No.:</td>
+                            <td>{{ $invoice->invoice_no }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Client Name:</td>
+                            <td>{{ strtoupper($invoice->customer_name) }}</td>
+                            <td class="label">Address:</td>
+                            <td>{{ strtoupper($invoice->customer_address ?? 'N/A') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">City & State:</td>
+                            <td>AHMEDABAD</td>
+                            <td class="label">Contact Number:</td>
+                            <td>{{ $invoice->customer_no ?? 'N/A' }}</td>
+                        </tr>
+                        <tr >
+                            <td class="label">BILED BY:</td>
+                            <td colspan="3">Mr {{ $invoice->user->name ?? 'Admin' }}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Itemized Billing Table -->
+                <table class="billing-table">
+                    <thead>
+                        <tr>
+                            <th>Sr No</th>
+                            <th>Description of Item</th>
+                            <th>Quantity</th>
+                            <th>Rate</th>
+                            <th>Amount in Rs.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td class="description">
+                                {{ $invoice->item_description }}
+                                @if($invoice->purchase && $invoice->purchase->imei)
+                                    <div class="imei">IMEI {{ $invoice->purchase->imei }}</div>
+                                @endif
+                            </td>
+                            <td>{{ $invoice->quantity ?? 1 }} Unit</td>
+                            <td>₹{{ number_format($invoice->total_amount, 2) }}</td>
+                            <td>₹{{ number_format($invoice->net_amount, 2) }}</td>
+                        </tr>
+                    </tbody>
                 </table>
-            </div>
 
-            <!-- Itemized Billing Table -->
-            <table class="billing-table">
-                <thead>
-                    <tr>
-                        <th>Sr No</th>
-                        <th>Description of Item</th>
-                        <th>Quantity</th>
-                        <th>Rate</th>
-                        <th>Amount in Rs.</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td class="description">
-                            {{ $invoice->item_description }}
-                            @if($invoice->purchase && $invoice->purchase->imei)
-                                <div class="imei">IMEI {{ $invoice->purchase->imei }}</div>
-                            @endif
-                        </td>
-                        <td>{{ $invoice->quantity ?? 1 }} Unit</td>
-                        <td>₹{{ number_format($invoice->total_amount, 2) }}</td>
-                        <td>₹{{ number_format($invoice->total_amount, 2) }}</td>
-                    </tr>
-                </tbody>
-            </table>
+                <!-- Summary Section -->
+                <div class="summary-section">
+                    <div class="summary-row">
+                        <div class="summary-label">Sub Total:</div>
+                        <div class="summary-value">₹{{ number_format($invoice->total_amount, 2) }}</div>
+                    </div>
+                    @if($invoice->discount > 0)
+                    <div class="summary-row">
+                        <div class="summary-label">Discount (-) :</div>
+                        <div class="summary-value">₹{{ number_format($invoice->discount, 2) }}</div>
+                    </div>
+                    @endif
+                    @if($invoice->cgst_amount > 0)
+                    <div class="summary-row">
+                        <div class="summary-label">CGST:</div>
+                        <div class="summary-value">₹{{ number_format($invoice->cgst_amount, 2) }}</div>
+                    </div>
+                    @endif
+                    @if($invoice->sgst_amount > 0)
+                    <div class="summary-row">
+                        <div class="summary-label">SGST:</div>
+                        <div class="summary-value">₹{{ number_format($invoice->sgst_amount, 2) }}</div>
+                    </div>
+                    @endif
+                    @if($invoice->igst_amount > 0)
+                    <div class="summary-row">
+                        <div class="summary-label">IGST:</div>
+                        <div class="summary-value">₹{{ number_format($invoice->igst_amount, 2) }}</div>
+                    </div>
+                    @endif
+                    <div class="summary-row">
+                        <div class="summary-label">Gross Total:</div>
+                        <div class="summary-value">₹{{ number_format($invoice->net_amount, 2) }}</div>
+                    </div>
+                </div>
 
-            <!-- Summary Section -->
-            <div class="summary-section">
-                <div class="summary-row">
-                    <div class="summary-label">Sub Total:</div>
-                    <div class="summary-value">₹{{ number_format($invoice->total_amount, 2) }}</div>
+                <!-- Payment Details -->
+                <div class="payment-details">
+                    <div class="payment-row">
+                        <div class="payment-label">Mode of Payment:</div>
+                        <div>{{ ucfirst($invoice->payment_type) }}</div>
+                    </div>
+                    <div class="payment-row">
+                        <div class="payment-label">Ref Number:</div>
+                        <div></div>
+                    </div>
+                    <div class="payment-row">
+                        <div class="payment-label">Balance Amount Payable:</div>
+                        <div></div>
+                    </div>
+                    <div class="payment-row">
+                        <div class="payment-label">Total Amount In Words:</div>
+                        <div>{{ $amountInWords }}</div>
+                    </div>
                 </div>
-                @if($invoice->discount > 0)
-                <div class="summary-row">
-                    <div class="summary-label">(-) Discount:</div>
-                    <div class="summary-value">₹{{ number_format($invoice->discount, 2) }}</div>
-                </div>
-                @endif
-                <div class="summary-row">
-                    <div class="summary-label">Gross Total:</div>
-                    <div class="summary-value">₹{{ number_format($invoice->net_amount, 2) }}</div>
-                </div>
-            </div>
 
-            <!-- Payment Details -->
-            <div class="payment-details">
-                <div class="payment-row">
-                    <div class="payment-label">Mode of Payment:</div>
-                    <div>{{ ucfirst($invoice->payment_type) }}</div>
+                <!-- Terms & Conditions with Signature Section -->
+                <div class="terms-signature-section">
+                    <div class="terms-box">
+                        <div class="terms-header">
+                            <h5>Terms & Conditions</h5>
+                        </div>
+                        <ul>
+                            <li>All devices comes with limited 3-Month Mafia Mobile Warranty, which covers hardware malfunction and issue, Battery health is covered under warranty only in case of "Mandatory Service Request" Message. No warranty on Physical & Water Damage.</li>
+                            <li>Once the Invoice is generated, the product shall remain non-returnable and any payment so made shall be Non Refundable.</li>
+                            <li>Mafia Mobile as a firm is engaged in Sale/Buy/Exchange of Active Second hand devices. We Declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</li>
+                            <li>Value of supply is Determined in accordance to section 15(5) of the central goods and services tax act read with rule 32(5) of "determination of the value of supply "The credit for GST input shall not be available to the buyer if buyer follow the same valuation rule.</li>
+                        </ul>
+                    </div>
+                    <div class="signature-section">
+                        <div class="signature-text">For, {{ $companyName }}</div>
+                        <div class="authorized-signatory">Authorized Signatory</div>
+                    </div>
                 </div>
-                <div class="payment-row">
-                    <div class="payment-label">Ref Number:</div>
-                    <div></div>
-                </div>
-                <div class="payment-row">
-                    <div class="payment-label">Balance Amount Payable:</div>
-                    <div></div>
-                </div>
-                <div class="payment-row">
-                    <div class="payment-label">Total Amount In Words:</div>
-                    <div>{{ $amountInWords }}</div>
-                </div>
-            </div>
 
-            <!-- Terms & Conditions with Signature Section -->
-            <div class="terms-signature-section">
-                <div class="terms-box">
-                    <ul>
-                        <li>All devices comes with limited 3-Month Mafia Mobile Warranty, which covers hardware malfunction and issue, Battery health is covered under warranty only in case of "Mandatory Service Request" Message. No warranty on Physical & Water Damage.</li>
-                        <li>Once the Invoice is generated, the product shall remain non-returnable and any payment so made shall be Non Refundable.</li>
-                        <li>Mafia Mobile as a firm is engaged in Sale/Buy/Exchange of Active Second hand devices. We Declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</li>
-                        <li>Value of supply is Determined in accordance to section 15(5) of the central goods and services tax act read with rule 32(5) of "determination of the value of supply "The credit for GST input shall not be available to the buyer if buyer follow the same valuation rule.</li>
-                    </ul>
-                </div>
-                <div class="signature-section">
-                    <div class="signature-text">For, {{ $companyName }}</div>
-                    <div class="authorized-signatory">Authorized Signatory</div>
-                </div>
-            </div>
-
-            <!-- Footer Section -->
-            <div class="footer-section">
-                <div class="footer-left">
-                    GST: 24EGPPR3654J1ZS<br>
-                    Shop No. 26, Near Krish Residncy, Nikol, Ahmedabad, 989877764
-                </div>
-                <div class="footer-right">
-                    <div class="footer-logo">
-                        <img src="{{asset('assets/images/visionlogo-wb.png')}}" alt="Company Logo">
+                <!-- Footer Section -->
+                <div class="footer-section">
+                    <div class="footer-left">
+                        <strong>GST: 24DTVPD2928H1ZG </strong><br>
+                        GF-04, Parth Avenue, Nr. ONGC Avani Bhavan, Chandkheda, Ahmedabad. 8901606060
+                    </div>
+                    <div class="footer-right">
+                        <div class="footer-logo">
+                            <img src="{{asset('assets/images/new_logo/main_logo.png')}}" alt="Company Logo">
+                        </div>
                     </div>
                 </div>
             </div>

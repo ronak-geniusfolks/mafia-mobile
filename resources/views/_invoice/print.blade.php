@@ -46,9 +46,9 @@ td { color: #000; font-size:15px; }
     /* .bill-table { border: 1px solid; } */
     .terms { color: #ed1547; -webkit-print-color-adjust: exact; color-adjust: exact; }
     .conditions { color: #0382cd; -webkit-print-color-adjust: exact; color-adjust: exact; }
-    .blueheader { 
-        background-color: #0986c6a3; 
-        border-bottom: 1px solid #000; 
+    .blueheader {
+        background-color: #0986c6a3;
+        border-bottom: 1px solid #000;
         -webkit-print-color-adjust: exact;
         color-adjust: exact;
     }
@@ -194,7 +194,7 @@ td { color: #000; font-size:15px; }
                                             <td style="width:15%; color:#000; text-align:right; padding-right:10px; border-top: 1px solid;"><h4 style="color:#000">₹{{ $invoice->net_amount }}</h4></td>
                                         </tr>
                                         @endif
-                                       
+
                                     </tbody>
                                 </table>
                             </td>
@@ -394,5 +394,5 @@ td { color: #000; font-size:15px; }
         }
     </script>
 
-</div> 
+</div>
 @endsection
