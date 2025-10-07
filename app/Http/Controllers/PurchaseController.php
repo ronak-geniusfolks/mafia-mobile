@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Purchase;
@@ -7,39 +6,36 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Response;
-use Maatwebsite\Excel\Facades\Excel;
 
 class PurchaseController extends Controller
 {
-    //
     public function index(Request $request)
     {
-        $search = $request->input('search');
-        $isSold = $request->input('is_sold');
-        $year = $request->input('year');
-        $storage = $request->input('storage');
-        $color = $request->input('color');
+        $search        = $request->input('search');
+        $isSold        = $request->input('is_sold');
+        $year          = $request->input('year');
+        $storage       = $request->input('storage');
+        $color         = $request->input('color');
         $sortDirection = $request->input('direction', 'desc');
         if ($request->query('download') === 'csv') {
             $fileName = 'stock';
             if ($color) {
-                $fileName .= ''.$color;
+                $fileName .= '' . $color;
             }
             if ($storage) {
-                $fileName .= '-'.$storage;
+                $fileName .= '-' . $storage;
             }
             if ($year) {
-                $fileName .= '-'.$year;
+                $fileName .= '-' . $year;
             }
 
             $fileName .= '-.csv';
-            // $fileName = $year.'-'.$storage.'-'.$color.'-stock.csv';
             $headers = [
-                'Content-type' => 'text/csv',
+                'Content-type'        => 'text/csv',
                 'Content-Disposition' => "attachment; filename=$fileName",
-                'Pragma' => 'no-cache',
-                'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
-                'Expires' => '0',
+                'Pragma'              => 'no-cache',
+                'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+                'Expires'             => '0',
             ];
             $allPurchases = Purchase::query()
                 ->when($search, function ($query, $search): void {
@@ -73,11 +69,11 @@ class PurchaseController extends Controller
             $callback = function () use ($allPurchases): void {
                 $file = fopen('php://output', 'w+');
 
-                // Add the CSV header (modify this based on your model)
+                                                                                                                                                                                                    // Add the CSV header (modify this based on your model)
                 fputcsv($file, ['Sr No', 'Purchase Date', 'IMEI', 'Model', 'Storage', 'Color', 'Sell Date', 'Buy From', 'Mobile No', 'Buy Cost', 'Repairing', 'Buy Price', 'Sold', 'Remark'], ';'); // Specify the custom separator (;)
 
                 // Add the data rows
-                $sellDate = '';
+                $sellDate  = '';
                 $totalCost = $repairingCost = $purchasePrice = 0;
                 foreach ($allPurchases as $row) {
                     fputcsv($file, [
@@ -164,13 +160,13 @@ class PurchaseController extends Controller
             ->orderBy('color', 'asc') // Optional: order by color alphabetically
             ->get();
         return view('purchase.purchases', [
-            'allPurchases' => $allPurchases,
-            'issold' => $isSold,
-            'year' => $year,
-            'storage' => $storage,
+            'allPurchases'  => $allPurchases,
+            'issold'        => $isSold,
+            'year'          => $year,
+            'storage'       => $storage,
             'sortDirection' => $sortDirection,
-            'totalItems' => $allPurchases->total(),
-            'colors' => $colors,
+            'totalItems'    => $allPurchases->total(),
+            'colors'        => $colors,
             'selectedcolor' => $color,
         ]);
     }
@@ -178,116 +174,107 @@ class PurchaseController extends Controller
     // New purchase form
     public function newPurchase()
     {
-        return view('purchase.newpurchase');
+        $purchase = new Purchase();
+        return view('purchase.newpurchase', ['purchase' => $purchase]);
     }
 
     public function purchaseDetail($id)
     {
         $purchase = Purchase::findOrFail($id);
-
         return view('purchase.purchasedetail', ['purchase' => $purchase]);
     }
 
     public function savePurchase(Request $request)
     {
-        // dd($request->all());
         $request->validate([
-            'model' => 'required',
-            'imei' => 'required',
+            'model'         => 'required',
+            'imei'          => 'required',
             'purchase_date' => 'required',
-            'color' => 'required',
-            'storage' => 'required',
+            'color'         => 'required',
+            'storage'       => 'required',
             'purchase_from' => 'required',
-            // 'contactno'=>'required|max:12|min:10',
             'purchase_cost' => 'required',
-        ], [
-            // 'contactno.required' => 'Please Correct Phone Number',
         ]);
 
-        $purchase = new Purchase;
-        $purchase->device_type = $request->device_type;
-        $purchase->model = $request->model;
-        // $purchase->brand = $request->brand;
-        $purchase->imei = $request->imei;
-        $purchase->purchase_date = $request->purchase_date;
-        $purchase->color = $request->color;
-        $purchase->storage = $request->storage;
-        $purchase->purchase_from = $request->purchase_from;
-        $purchase->contactno = $request->contactno;
-        $purchase->warrentydate = $request->warrentydate;
-        $purchase->purchase_cost = $request->purchase_cost;
-        $purchase->repairing_charge = $request->repairing_charge;
+        // If request has ID → update, else create new
+        $purchase = $request->id
+            ? Purchase::findOrFail($request->id)
+            : new Purchase;
 
-        $repairingCharge = $purchase_price = $purchase->purchase_price = 0;
-        if ($purchase->repairing_charge > 0) {
-            $repairingCharge = $purchase->repairing_charge;
-        }
-        if ($purchase->purchase_cost > 0) {
-            $purchaseCost = $purchase->purchase_cost;
-        }
+        // Assign common fields
+        $purchase->device_type      = $request->device_type;
+        $purchase->model            = $request->model;
+        $purchase->imei             = $request->imei;
+        $purchase->purchase_date    = $request->purchase_date;
+        $purchase->color            = $request->color;
+        $purchase->storage          = $request->storage;
+        $purchase->purchase_from    = $request->purchase_from;
+        $purchase->contactno        = $request->contactno;
+        $purchase->warrentydate     = $request->warrentydate;
+        $purchase->purchase_cost    = $request->purchase_cost;
+        $purchase->repairing_charge = $request->repairing_charge ?? 0;
+        $purchase->remark           = $request->remark;
+        $purchase->user_id          = Auth::id();
+
+        // Calculate total purchase price
+        $purchaseCost    = $purchase->purchase_cost > 0 ? $purchase->purchase_cost : 0;
+        $repairingCharge = $purchase->repairing_charge > 0 ? $purchase->repairing_charge : 0;
         $purchase->purchase_price = floatval($purchaseCost + $repairingCharge);
-        $purchase->remark = $request->remark;
-        $purchase->user_id = Auth::user()->id;
 
-        if ($request->file('document') != null && count($request->file('document')) > 0) {
+        // Handle documents
+        if ($request->hasFile('document') && count($request->file('document')) > 0) {
+            $documents = [];
             foreach ($request->file('document') as $file) {
-                // $file = $request->file('document');
-                @unlink(public_path('documents/purchases/'.$file->getClientOriginalName()));
-                $filename = date('YmdHi').$file->getClientOriginalName();
+                $filename = date('YmdHi') . '_' . $file->getClientOriginalName();
                 $file->move(public_path('documents/purchases/'), $filename);
-                $documents[] = 'documents/purchases/'.$filename;
+                $documents[] = 'documents/purchases/' . $filename;
             }
             $purchase->document = implode(',', $documents);
         }
+
+        // Save or update
+        $isNew = !$request->id;
         $purchase->save();
 
-        return redirect()->route('allpurchases')->withStatus('Stock Added Successfully..');
+        return redirect()
+            ->route('allpurchases')
+            ->withStatus($isNew ? 'Stock Added Successfully...' : 'Stock Updated Successfully...');
     }
 
     public function deleteStock($id, Request $request)
     {
-        // $purchase = Purchase::findOrFail($id);
-        // // $purchase->delete();
-        // $purchase->deleted = 1;
-        // $purchase->update($purchase->deleted);
-
         Purchase::where('id', $id)->update(['deleted' => 1]);
-
         return redirect()->route('allpurchases')->withStatus('Stock Deleted Successfully..');
     }
 
     public function editPurchase($id)
     {
         $purchase = Purchase::findOrFail($id);
-
-        return view('purchase.editpurchase', ['purchase' => $purchase]);
+        return view('purchase.newpurchase', ['purchase' => $purchase]);
     }
 
     public function updatePurchase(Request $request)
     {
         $request->validate([
-            'model' => 'required',
-            'imei' => 'required',
+            'model'         => 'required',
+            'imei'          => 'required',
             'purchase_date' => 'required',
-            // 'color'=>'required',
-            'storage' => 'required',
+            'storage'       => 'required',
             'purchase_from' => 'required',
-            // 'contactno'=>'required|max:12|min:10',
             'purchase_cost' => 'required',
-            // 'document'=>'required',
         ]);
-        $purchase = Purchase::findOrFail($request->id);
-        $purchase->model = $request->model;
-        $purchase->device_type = $request->device_type;
-        $purchase->imei = $request->imei;
-        $purchase->purchase_date = $request->purchase_date;
-        $purchase->color = $request->color;
-        $purchase->storage = $request->storage;
-        $purchase->purchase_from = $request->purchase_from;
-        $purchase->contactno = $request->contactno;
-        $purchase->purchase_cost = $request->purchase_cost;
+        $purchase                   = Purchase::findOrFail($request->id);
+        $purchase->model            = $request->model;
+        $purchase->device_type      = $request->device_type;
+        $purchase->imei             = $request->imei;
+        $purchase->purchase_date    = $request->purchase_date;
+        $purchase->color            = $request->color;
+        $purchase->storage          = $request->storage;
+        $purchase->purchase_from    = $request->purchase_from;
+        $purchase->contactno        = $request->contactno;
+        $purchase->purchase_cost    = $request->purchase_cost;
         $purchase->repairing_charge = $request->repairing_charge;
-        $purchase->warrentydate = $request->warrentydate;
+        $purchase->warrentydate     = $request->warrentydate;
 
         $repairingCharge = $purchase_price = $purchase->purchase_price = 0;
         if ($purchase->repairing_charge > 0) {
@@ -297,23 +284,22 @@ class PurchaseController extends Controller
             $purchaseCost = $purchase->purchase_cost;
         }
         $purchase->purchase_price = floatval($purchaseCost + $repairingCharge);
-        $purchase->remark = $request->remark;
-        $purchase->user_id = Auth::user()->id;
+        $purchase->remark         = $request->remark;
+        $purchase->user_id        = Auth::user()->id;
 
         if ($request->file('document') != null && count($request->file('document')) > 0) {
             $purchase->document = $this->uploadFiles($request->file('document'));
         }
         $purchase->update();
 
-        return redirect()->route('allpurchases')->withStatus("Stock Updated Successfully.. :: '".$purchase->model."'");
+        return redirect()->route('allpurchases')->withStatus("Stock Updated Successfully.. :: '" . $purchase->model . "'");
     }
 
     // Function for uploading documents
     public function uploadFiles($documents): string
     {
         foreach ($documents as $file) {
-            //  @unlink(public_path('documents/purchases/' . $file->getClientOriginalName()));
-            $filename = time().$file->getClientOriginalName();
+            $filename = time() . $file->getClientOriginalName();
             $file->move(public_path('documents/purchases/'), $filename);
             $docs[] = $filename;
         }
@@ -328,7 +314,6 @@ class PurchaseController extends Controller
 
     public function downloadStock(Request $request): void
     {
-        dd($_REQUEST);
         echo 'Download Stocks';
         exit;
     }
@@ -345,28 +330,25 @@ class PurchaseController extends Controller
             while (($data = fgetcsv($handle, 1000, ';')) !== false) {
                 $is_sold = $data[8] !== null && $data[8] !== '' && $data[8] !== '0' ? 1 : 0;
                 Purchase::create([
-                    'purchase_date' => \DateTime::createFromFormat('d.m.Y', $data[1])->format('Y-m-d'),
-                    'imei' => $data[2],
-                    'model' => $data[3],
-                    'storage' => $data[4],
-                    'color' => $data[5],
-                    'purchase_from' => $data[6],
-                    'contactno' => ($data[7] !== null && $data[7] !== '' && $data[7] !== '0') ? $data[7] : null,
-                    'purchase_cost' => trim(($data[9] !== null && $data[9] !== '' && $data[9] !== '0') ? $data[9] : 0),
+                    'purchase_date'    => \DateTime::createFromFormat('d.m.Y', $data[1])->format('Y-m-d'),
+                    'imei'             => $data[2],
+                    'model'            => $data[3],
+                    'storage'          => $data[4],
+                    'color'            => $data[5],
+                    'purchase_from'    => $data[6],
+                    'contactno'        => ($data[7] !== null && $data[7] !== '' && $data[7] !== '0') ? $data[7] : null,
+                    'purchase_cost'    => trim(($data[9] !== null && $data[9] !== '' && $data[9] !== '0') ? $data[9] : 0),
                     'repairing_charge' => trim($data[10] !== null && $data[10] !== '' && $data[10] !== '0' ? $data[10] : 0),
-                    'remark' => $data[11],
-                    'purchase_price' => trim((string) $data[12]),
-                    'user_id' => Auth::user()->id,
-                    'device_type' => 'Phone',
-                    'is_sold' => $is_sold,
+                    'remark'           => $data[11],
+                    'purchase_price'   => trim((string) $data[12]),
+                    'user_id'          => Auth::user()->id,
+                    'device_type'      => 'Phone',
+                    'is_sold'          => $is_sold,
                 ]);
             }
             fclose($handle);
         }
 
-        // Excel::import(new ProductsImport, $file);
-        // dd($request);
         return redirect()->route('allpurchases')->withStatus('Stocks imported successfully.');
-        // die;
     }
 }

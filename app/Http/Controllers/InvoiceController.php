@@ -32,7 +32,7 @@ class InvoiceController extends Controller
         $nextInvoiceNo = 1; // Default to 1
         if ($lastInvoice) {
             // Extract the year from the last invoice number
-            preg_match('/VM(\d{4})/', (string) $lastInvoice->invoice_no, $matches);
+            preg_match('/MF(\d{4})/', (string) $lastInvoice->invoice_no, $matches);
             $lastYear = $matches[1] ?? null;
 
             if ($lastYear == $currentYear) {
@@ -42,7 +42,7 @@ class InvoiceController extends Controller
             }
         }
 
-        $formattedNumber = 'VM' . $currentYear . str_pad($nextInvoiceNo, 4, '0', STR_PAD_LEFT);
+        $formattedNumber = 'MF' . $currentYear . str_pad($nextInvoiceNo, 4, '0', STR_PAD_LEFT);
 
         return view('invoice.add', [
             'stocksModel' => $stocksModel,
@@ -88,6 +88,7 @@ class InvoiceController extends Controller
             'discount'             => $request->discount_amount ?? 0,
             'discount_rate'        => $request->discount_rate ?? 0,
             'quantity'             => $request->quantity ?? 1,
+            'customer_address'     => $request->customer_address ?? null,
             'payment_type'         => $request->payment_type,
             'is_paid'              => 1,
             'profit'               => $profit,
@@ -126,7 +127,7 @@ class InvoiceController extends Controller
 
     public function printInvoice($id)
     {
-        $invoice       = Invoice::findOrFail($id);
+        $invoice       = Invoice::with(['purchase', 'user'])->findOrFail($id);
         $amountInWords = $this->amoutInWords(floatval($invoice->net_amount));
 
         return view('invoice.print', ['invoice' => $invoice, 'amountInWords' => $amountInWords]);
@@ -169,6 +170,7 @@ class InvoiceController extends Controller
         }
 
         $updateData['profit']     = floatval($request->net_amount - Purchase::findOrFail($request->item_id)->purchase_price);
+        $updateData['customer_address'] = $request->customer_address ?? null;
         $updateData['invoice_by'] = Auth::user()->id;
         $invoice->update($updateData);
 
