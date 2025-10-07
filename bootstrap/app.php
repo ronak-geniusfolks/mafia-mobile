@@ -31,5 +31,28 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Render custom 403 page for authorization failures in web requests
+        $exceptions->render(function (\Illuminate\Auth\Access\AuthorizationException $e, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'User does not have the right permissions.',
+                    'code' => 403,
+                ], 403);
+            }
+            return response()->view('errors.403', [], 403);
+        });
+
+        // Fallback for any other 403 HTTP exceptions
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
+            if ($e->getStatusCode() !== 403) {
+                return null; // let default handler process
+            }
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'User does not have the right permissions.',
+                    'code' => 403,
+                ], 403);
+            }
+            return response()->view('errors.403', [], 403);
+        });
     })->create();

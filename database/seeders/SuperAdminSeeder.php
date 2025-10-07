@@ -13,11 +13,11 @@ class SuperAdminSeeder extends Seeder
     {
         // 1. Create Super Admin User
         $admin = User::firstOrCreate(
-            ['email' => 'kishanpatel20205@gmail.com'],
+            ['email' => 'mafiamobile36@gmail.com'],
             [
-                'name'      => 'Kishan Patel',
-                'user_name' => 'kishan_patel',
-                'password'  => Hash::make('Kishan.20205'), // Make sure to update in prod
+                'name'      => 'Mafia Mobile',
+                'user_name' => 'mafia_mobile',
+                'password'  => Hash::make('Mafia.mobile.2025'), // Make sure to update in prod
             ]
         );
 

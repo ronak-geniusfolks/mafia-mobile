@@ -67,9 +67,6 @@
                                 <div class="form-group mb-3">
                                     <label for="customer_no">Contact No:* <span class="pl-2"><input type="checkbox" name="customer_no_sync" id="customer_no_sync"><label class="pl-1 mb-0">Would you like to sync with your phone?</label></span> </label>
                                     <input type="text" name="customer_no" class="form-control border-bottom" id="customer_no" maxlength="10" tabindex="5" placeholder="Customer mobile">
-                                    <!-- @error('customer_no')
-                                        <div class="invalid-feedback">{{ $message}} </div>
-                                    @enderror -->
                                 </div>
                             </div>
                             <div class="col-md-5">
