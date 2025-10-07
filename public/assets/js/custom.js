@@ -65,7 +65,6 @@ jQuery(document).ready(function () {
                                 "IMEI: " + data.purchase["imei"] + "\n";
                         }
                         $("#itemID").val(data.purchase["id"]);
-                        // descriptionTxt += "Model: " + data.model+"\n"+"Color: " + data.color+"\n"+"Storage: " + data.storage+"\n"+"IMEI: " + data.imei;
                         $("#item_description").html(descriptionTxt);
                         $("#quantity").val(data.count);
                     } else {

@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\User;
@@ -11,7 +10,7 @@ use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
 {
-    // View Loggedin user Profile
+    // View Logged in user Profile
     public function profile()
     {
         $admin = Auth::user();
@@ -22,23 +21,23 @@ class AdminController extends Controller
     public function updateProfile(Request $request)
     {
         $request->validate([
-            'name' => 'required',
+            'name'     => 'required',
             'username' => 'required',
-            'email' => 'required|email',
-            'profile_image' => 'nullable',
+            'email'    => 'required|email',
+            'avatar' => 'nullable|image|max:2048', // max 2MB
         ]);
 
         $admin = User::find(Auth::user()->id);
-        // dd($request->all());
-        $admin->name = $request->name;
-        $admin->user_name = $request->username;
-        $admin->email = $request->email;
-        if ($request->file('profile_image')) {
-            $file = $request->file('profile_image');
 
-            $filename = $admin->id.'-'.time().'-'.$file->getClientOriginalName();
+        $admin->name      = $request->name;
+        $admin->user_name = $request->username;
+        $admin->email     = $request->email;
+        if ($request->file('avatar')) {
+            $file = $request->file('avatar');
+
+            $filename = $admin->id . '-' . time() . '-' . $file->getClientOriginalName();
             $file->move(public_path('admin/users/'), $filename);
-            $admin->profile_image = $filename;
+            $admin->avatar = $filename;
         }
         $admin->save();
 
@@ -54,9 +53,9 @@ class AdminController extends Controller
 
     public function newPassword(Request $request)
     {
-        $user = Auth::user();
+        $user      = Auth::user();
         $validator = Validator::make($request->all(), [
-            'password' => 'required|min:8',
+            'password'        => 'required|min:8',
             'currentpassword' => 'required|min:8',
         ]);
         if (! Auth::attempt(['id' => $user->id, 'password' => $request->currentpassword])) {
