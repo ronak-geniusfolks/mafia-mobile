@@ -86,8 +86,8 @@
                             <ul class="nav-second-level">
                                 @can('sales.view')
                                 <li><a href="{{ route('allsales') }}">Sold Items</a></li> @endcan
-                                @can('sales.create')
-                                <li><a href="{{ route('new-sale') }}">New Sale</a></li> @endcan
+                                {{-- @can('sales.create')
+                                <li><a href="{{ route('new-sale') }}">New Sale</a></li> @endcan --}}
                             </ul>
                         </div>
                     </li>
