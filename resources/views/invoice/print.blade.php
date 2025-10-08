@@ -402,7 +402,7 @@
                     <table class="details-table">
                         <tr>
                             <td class="label">Date of Invoice:</td>
-                            <td>{{ date("F j, Y", strtotime($invoice->invoice_date)) }}</td>
+                            <td>{{ date("j F, Y", strtotime($invoice->invoice_date)) }}</td>
                             <td class="label">Invoice No.:</td>
                             <td>{{ $invoice->invoice_no }}</td>
                         </tr>
@@ -494,14 +494,14 @@
                         <div class="payment-label">Mode of Payment:</div>
                         <div>{{ ucfirst($invoice->payment_type) }}</div>
                     </div>
-                    <div class="payment-row">
+                    {{-- <div class="payment-row">
                         <div class="payment-label">Ref Number:</div>
                         <div></div>
                     </div>
                     <div class="payment-row">
                         <div class="payment-label">Balance Amount Payable:</div>
                         <div></div>
-                    </div>
+                    </div> --}}
                     <div class="payment-row">
                         <div class="payment-label">Total Amount In Words:</div>
                         <div>{{ $amountInWords }}</div>
