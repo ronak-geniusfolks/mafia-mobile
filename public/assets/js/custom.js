@@ -2,7 +2,6 @@ jQuery(document).ready(function () {
     // fetch stock data on sale page
     jQuery("#salemodelimei").on("blur", function (e) {
         var modelID = jQuery("#salemodelimei").val();
-        // console.log(modelID);
         if (modelID) {
             jQuery.ajax({
                 url: "/admin/fetchstockdata/" + modelID,
