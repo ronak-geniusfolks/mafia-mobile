@@ -67,7 +67,7 @@ class SaleController extends Controller
 
     public function newSale()
     {
-        $stocksModel = Purchase::where('is_sold', 0)->get();
+        $stocksModel = Purchase::where(['is_sold' => 0, 'deleted' => 0])->get();
 
         return view('sales.newsale', ['stockModels' => $stocksModel]);
     }
@@ -117,7 +117,7 @@ class SaleController extends Controller
     public function fetchModelData($imei)
     {
         // $purchase = Purchase::where('imei', $imei)->first();
-        $stock = Purchase::where('imei', 'LIKE', "{$imei}%")
+        $stock = Purchase::where('imei', 'LIKE', "%{$imei}%")
             ->where('is_sold', 0)
             ->first();
         $count = $stock ? 1 : 0;
