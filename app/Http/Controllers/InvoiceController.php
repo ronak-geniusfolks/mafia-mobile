@@ -135,7 +135,7 @@ class InvoiceController extends Controller
 
     public function fetchModelData($imei)
     {
-        $purchase = Purchase::where('imei', 'LIKE', "{$imei}%")
+        $purchase = Purchase::where('imei', 'LIKE', "%{$imei}%")
             ->where('is_sold', 0)
             ->first();
         $count = $purchase ? 1 : 0;
