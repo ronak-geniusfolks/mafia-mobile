@@ -8,15 +8,11 @@ use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
 {
-    //
     public function index(Request $request)
     {
-        // $expenses = Expense::where('deleted', 0)->orderBy('entrydate', 'desc')->get();
         $month = $request->input('month');
         $year = $request->input('year');
-        // dd($expenses);
         $currentMonth = Carbon::now()->format('F');
-        // $startOfMonth = Carbon::now()->startOfMonth()->toDateTimeString();
         $query = Expense::where('deleted', 0)->orderBy('entrydate', 'desc');
         if ($month || $year) {
             // Convert month name to number
@@ -42,7 +38,6 @@ class ExpenseController extends Controller
             'expenses' => $expenses,
             'year' => $year ?? date('Y'),
             'month' => $month ?? date('F'),
-            // 'timePeriod' => $currentMonth,
             'totalExpenseAmount' => number_format($totalExpenseAmount, 2, '.', ''),
         ]);
     }

@@ -138,7 +138,7 @@
                 @endcanany
 
                 <!-- Expenses -->
-                {{-- @canany(['expenses.view', 'expenses.create'])
+                @canany(['expenses.view', 'expenses.create'])
                     <li>
                         <a data-toggle="collapse" href="#expensesMenu" role="button" aria-expanded="false"
                             aria-controls="expensesMenu">
@@ -150,12 +150,12 @@
                             <ul class="nav-second-level">
                                 @can('expenses.view')
                                 <li><a href="{{ route('expenses') }}">Expenses</a></li> @endcan
-                                @can('expenses.create')
-                                <li><a href="{{ route('add-expense') }}">Add Expense</a></li> @endcan
+                                {{-- @can('expenses.create')
+                                <li><a href="{{ route('add-expense') }}">Add Expense</a></li> @endcan --}}
                             </ul>
                         </div>
                     </li>
-                @endcanany --}}
+                @endcanany
 
                 <!-- Finance -->
                 @can('transactions.view')
