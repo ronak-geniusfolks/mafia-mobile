@@ -17,7 +17,7 @@
             <div class="page-title-box">
                 <h4 class="page-title">
                     <a href="{{ route('add-expense') }}" class="btn btn-success w-100">
-                        + Add Expense
+                        Add Expense
                     </a>
                 </h4>
             </div>
