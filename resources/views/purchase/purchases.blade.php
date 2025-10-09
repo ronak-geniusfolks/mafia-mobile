@@ -23,10 +23,20 @@
                         class="btn btn-sm btn-primary float-right">
                         <i class="mdi mdi-file-excel-box"></i> Download Stock
                     </a>
-                    <a href="{{ route('purchase.create') }}"
-                        class="btn btn-sm btn-blue waves-effect waves-light float-right mr-1">
-                        <i class="mdi mdi-plus-circle"></i> Add Stock
-                    </a>
+                    <div class="btn-group float-right mr-1">
+                        <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false">
+                            <i class="mdi mdi-plus-circle"></i> Add Stock
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-right mt-1">
+                            <a class="dropdown-item" href="{{ route('purchase.create') }}">
+                                <i class="mdi mdi-plus-circle"></i> Single Stock
+                            </a>
+                            <a class="dropdown-item" href="{{ route('purchase.create.multiple') }}">
+                                <i class="mdi mdi-plus-circle-multiple"></i> Multiple Stock
+                            </a>
+                        </div>
+                    </div>
                     @if (count($allPurchases))
                         <h4 class="header-title mb-4">Manage Purchase [{{$totalItems}}]</h4>
                         <form action="{{ route('allpurchases') }}" method="GET" id="filterpurchase">
