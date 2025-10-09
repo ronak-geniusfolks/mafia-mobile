@@ -64,8 +64,8 @@
                                 </div>
 
                                 {{-- Row 2: Warranty + Party Info --}}
-                                {{-- <div class="row mb-3">
-                                    <div class="col-md-6">
+                                <div class="row mb-3">
+                                    {{-- <div class="col-md-6">
                                         <label for="warrenty" class="form-label fw-semibold">Brand Warranty <span
                                                 class="text-danger">*</span></label>
                                         <select class="form-select form-control" id="warrenty" name="warrenty"
@@ -79,13 +79,17 @@
                                             <input type="date" id="warrentydate" class="form-control form-control mt-2"
                                                 name="warrentydate" value="{{ old('warrentydate') }}">
                                         </div>
-                                    </div>
+                                    </div> --}}
                                     <div class="col-md-6">
                                         <label for="partyname" class="form-label fw-semibold">Party Name</label>
-                                        <input type="text" id="partyname" class="form-control form-control"
-                                            name="purchase_from" value="{{ old('purchase_from') }}">
+                                        <input type="text" id="partyname" class="form-control form-control" name="purchase_from"
+                                            value="{{ old('purchase_from') }}">
                                     </div>
-                                </div> --}}
+                                    <div class="col-md-6">
+                                        <label for="contactno" class="form-label fw-semibold">Party Contact No</label>
+                                        <input type="text" id="contactno" class="form-control form-control" name="contactno" value="{{ old('contactno') }}">
+                                    </div>
+                                </div>
 
                                 {{-- Row 3: Contact + Purchase Date --}}
                                 {{-- <div class="row mb-3">
