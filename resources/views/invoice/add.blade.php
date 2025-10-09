@@ -3,6 +3,11 @@
 @section('title')
     Create Invoice
 @endsection
+
+@section('css')
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/ui-lightness/jquery-ui.css">
+@endsection
+
 @section('content')
 
 <div class="container-fluid">
@@ -51,13 +56,13 @@
                             <div class="col-md-2">
                                 <div class="form-group mb-3">
                                     <label for="invoicedate">Invoice Date</label>
-                                    <input type="date" name="invoice_date" class="form-control border-bottom" id="invoicedate" tabindex="3" value="{{ date('d-m-Y') }}">
+                                    <input type="text" name="invoice_date" class="form-control border-bottom" id="invoicedate" tabindex="3" placeholder="dd/mm/yyyy" value="{{ date('d/m/Y') }}">
                                 </div>
                             </div>
                             <div class="col-md-2">
                                 <div class="form-group mb-3">
                                     <label for="warrantydate">Warrenty Expiry Date</label>
-                                    <input type="date" name="warranty_expiry_date" class="form-control border-bottom" id="warrantydate" tabindex="4" value="{{ date('d-m-Y') }}">
+                                    <input type="text" name="warranty_expiry_date" class="form-control border-bottom" id="warrantydate" tabindex="4" placeholder="dd/mm/yyyy" value="{{ date('d/m/Y') }}">
                                 </div>
                             </div>
                         </div>
@@ -183,4 +188,22 @@
     </div>
 
 </div>
+
+@endsection
+
+@section('scripts')
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Initialize datepicker for invoice date
+    $("#invoicedate").datepicker({
+        dateFormat: 'dd/mm/yy'
+    });
+    
+    // Initialize datepicker for warranty date
+    $("#warrantydate").datepicker({
+        dateFormat: 'dd/mm/yy'
+    });
+});
+</script>
 @endsection
