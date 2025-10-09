@@ -24,7 +24,6 @@
     <!-- Theme overrides -->
     <link href="{{ asset('assets/css/theme-overrides.css') }}" rel="stylesheet" type="text/css" />
 
-    <!-- <link href="{{ asset('assets/css/bootstrap-dark.min.css') }}" rel="stylesheet" type="text/css" id="bs-dark-stylesheet" disabled /> -->
     <link href="{{ asset('assets/css/app-dark.min.css') }}" rel="stylesheet" type="text/css" id="app-dark-stylesheet"
         disabled />
 
