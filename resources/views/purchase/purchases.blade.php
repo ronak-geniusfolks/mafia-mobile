@@ -23,10 +23,16 @@
                         class="btn btn-sm btn-primary float-right">
                         <i class="mdi mdi-file-excel-box"></i> Download Stock
                     </a>
-                    <a href="{{ route('purchase.create') }}"
-                        class="btn btn-sm btn-blue waves-effect waves-light float-right mr-1">
-                        <i class="mdi mdi-plus-circle"></i> Add Stock
-                    </a>
+                    <div class="btn-group float-right mr-1" role="group">
+                        <a href="{{ route('purchase.create') }}"
+                            class="btn btn-sm btn-outline-primary waves-effect waves-light">
+                            <i class="mdi mdi-plus-circle"></i> Single Stock
+                        </a>
+                        <a href="{{ route('purchase.create.multiple') }}"
+                            class="btn btn-sm btn-primary waves-effect waves-light">
+                            <i class="mdi mdi-plus-circle-multiple"></i> Multiple Stock
+                        </a>
+                    </div>
                     @if (count($allPurchases))
                         <h4 class="header-title mb-4">Manage Purchase [{{$totalItems}}]</h4>
                         <form action="{{ route('allpurchases') }}" method="GET" id="filterpurchase">

@@ -178,6 +178,12 @@ class PurchaseController extends Controller
         return view('purchase.newpurchase', ['purchase' => $purchase]);
     }
 
+    // New multiple purchase form
+    public function newMultiplePurchase()
+    {
+        return view('purchase.newpurchase-multiple');
+    }
+
     public function purchaseDetail($id)
     {
         $purchase = Purchase::findOrFail($id);
@@ -186,13 +192,17 @@ class PurchaseController extends Controller
 
     public function savePurchase(Request $request)
     {
+        // Check if it's multiple stock entry
+        if ($request->entry_type === 'multiple') {
+            return $this->saveMultiplePurchases($request);
+        }
+
         $request->validate([
             'model'         => 'required',
             'imei'          => 'required',
             'purchase_date' => 'required',
             'color'         => 'required',
             'storage'       => 'required',
-            'purchase_from' => 'required',
             'purchase_cost' => 'required',
         ]);
 
@@ -241,6 +251,55 @@ class PurchaseController extends Controller
             ->withStatus($isNew ? 'Stock Added Successfully...' : 'Stock Updated Successfully...');
     }
 
+    private function saveMultiplePurchases(Request $request)
+    {
+        $request->validate([
+            'model'         => 'required',
+            'purchase_date' => 'required',
+            'stock_items'   => 'required|array|min:1',
+            'stock_items.*.imei' => 'required',
+            'stock_items.*.storage' => 'required',
+            'stock_items.*.color' => 'required',
+            'stock_items.*.purchase_cost' => 'required|numeric',
+        ]);
+
+        $savedPurchases = [];
+        $totalCost = 0;
+
+        foreach ($request->stock_items as $index => $stockItem) {
+            $purchase = new Purchase();
+            
+            // Assign common fields
+            $purchase->device_type      = $request->device_type;
+            $purchase->model            = $request->model;
+            $purchase->purchase_date    = $request->purchase_date;
+            $purchase->purchase_from    = $request->purchase_from;
+            $purchase->contactno        = $request->contactno;
+            $purchase->warrentydate     = $request->warrentydate;
+            $purchase->repairing_charge = $request->repairing_charge ?? 0;
+            $purchase->remark           = $request->remark;
+            $purchase->user_id          = Auth::id();
+
+            // Assign individual stock item fields
+            $purchase->imei             = $stockItem['imei'];
+            $purchase->color            = $stockItem['color'];
+            $purchase->storage          = $stockItem['storage'];
+            $purchase->purchase_cost    = $stockItem['purchase_cost'];
+
+            // Calculate total purchase price
+            $purchaseCost    = $purchase->purchase_cost > 0 ? $purchase->purchase_cost : 0;
+            $repairingCharge = $purchase->repairing_charge > 0 ? $purchase->repairing_charge : 0;
+            $purchase->purchase_price = floatval($purchaseCost + $repairingCharge);
+
+            $totalCost += $purchase->purchase_price;
+            $purchase->save();
+            $savedPurchases[] = $purchase;
+        }
+
+        $message = count($savedPurchases) . " stock items added successfully for model '" . $request->model . "' (Total Cost: $" . number_format($totalCost, 2) . ")";
+        return redirect()->route('allpurchases')->withStatus($message);
+    }
+
     public function deleteStock($id, Request $request)
     {
         Purchase::where('id', $id)->update(['deleted' => 1]);
@@ -260,7 +319,6 @@ class PurchaseController extends Controller
             'imei'          => 'required',
             'purchase_date' => 'required',
             'storage'       => 'required',
-            'purchase_from' => 'required',
             'purchase_cost' => 'required',
         ]);
         $purchase                   = Purchase::findOrFail($request->id);

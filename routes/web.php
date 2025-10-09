@@ -97,6 +97,7 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/admin/purchases', [PurchaseController::class, 'index'])->middleware('permission:purchases.view')->name('allpurchases');
     Route::get('/admin/purchase/add', [PurchaseController::class, 'newPurchase'])->middleware('permission:purchases.create')->name('purchase.create');
+    Route::get('/admin/purchase/add-multiple', [PurchaseController::class, 'newMultiplePurchase'])->middleware('permission:purchases.create')->name('purchase.create.multiple');
     Route::post('/admin/purchase/add', [PurchaseController::class, 'savePurchase'])->middleware('permission:purchases.create')->name('purchase.store');
     Route::get('/admin/purchase/edit/{id}', [PurchaseController::class, 'editPurchase'])->middleware('permission:purchases.edit')->name('purchase.edit');
     Route::post('/admin/purchase/update/{id}', [PurchaseController::class, 'updatePurchase'])->middleware('permission:purchases.edit')->name('purchase.update');
