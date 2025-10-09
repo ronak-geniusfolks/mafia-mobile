@@ -32,10 +32,11 @@
                 @include('include.alert')
                 <div class="card shadow-lg rounded-3 border-0">
                     <div class="card-body p-4">
-                        <h4 class="mb-2 fw-bold text-primary">Purchase Entry</h4>
-                        <form class="form-horizontal" method="post" enctype="multipart/form-data" action="{{ route('purchase.store')}}">
+                        <h4 class="mb-3 fw-bold text-primary">Single Stock Entry</h4>
+                        <form class="form-horizontal" method="post" enctype="multipart/form-data" action="{{ route('purchase.store')}}" id="purchaseForm">
                             @csrf
                             <input type="hidden" name="id" value="{{ isset($purchase) ? $purchase->id : '' }}">
+                            <input type="hidden" name="entry_type" value="single">
 
                             {{-- Row 1: Device Type + Model --}}
                             <div class="row mb-3">
@@ -92,16 +93,14 @@
                             {{-- Row 4: Party Name + Contact --}}
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label for="partyname" class="form-label fw-semibold">Party Name <span
-                                            class="text-danger">*</span></label>
+                                    <label for="partyname" class="form-label fw-semibold">Party Name</label>
                                     <input type="text" id="partyname" class="form-control form-control" name="purchase_from"
-                                        value="{{ old('purchase_from',$purchase->purchase_from) }}" required>
+                                        value="{{ old('purchase_from',$purchase->purchase_from) }}">
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="contactno" class="form-label fw-semibold">Party Contact No <span
-                                            class="text-danger">*</span></label>
+                                    <label for="contactno" class="form-label fw-semibold">Party Contact No</label>
                                     <input type="text" id="contactno" class="form-control form-control" name="contactno"
-                                        value="{{ old('contactno',$purchase->contactno) }}" required>
+                                        value="{{ old('contactno',$purchase->contactno) }}">
                                 </div>
                             </div>
 
@@ -111,7 +110,7 @@
                                     <label for="purchasedate" class="form-label fw-semibold">Purchase Date <span
                                             class="text-danger">*</span></label>
                                     <input type="date" id="purchasedate" class="form-control form-control" name="purchase_date"
-                                        value="{{ old('purchase_date',$purchase->purchase_date) }}" required>
+                                        value="{{ old('purchase_date',$purchase->purchase_date) }}">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="purchasecost" class="form-label fw-semibold">Purchase Cost <span
@@ -141,6 +140,7 @@
                                 <input name="document[]" class="form-control" type="file" id="document" multiple>
                                 <div id="document-preview" class="row mt-3 g-2"></div>
                             </div> --}}
+
 
                             {{-- Buttons --}}
                             <div class="text-right">
