@@ -110,7 +110,7 @@
                                     <label for="purchasedate" class="form-label fw-semibold">Purchase Date <span
                                             class="text-danger">*</span></label>
                                     <input type="date" id="purchasedate" class="form-control form-control" name="purchase_date"
-                                        value="{{ old('purchase_date',$purchase->purchase_date) }}" required>
+                                        value="{{ old('purchase_date',$purchase->purchase_date) }}">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="purchasecost" class="form-label fw-semibold">Purchase Cost <span

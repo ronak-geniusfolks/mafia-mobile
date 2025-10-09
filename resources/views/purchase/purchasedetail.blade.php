@@ -40,20 +40,6 @@
             <!-- stock card -->
             <div class="card d-block">
                 <div class="card-body">
-
-                    <!-- <div class="float-right">
-                        <div class="form-row">
-                            <div class="col-auto">
-                                <a href="{{ route('allpurchases') }}" class="btn btn-sm btn-success"><i class="mdi mdi-keyboard-backspace"></i> Back</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h4 class="mb-3 mt-0 font-18">{{ $purchase->model }}
-                        <span class="ml-4 badge @if($purchase->is_sold == 1) badge-danger @else badge-success @endif">
-                            @if($purchase->is_sold == 1) Sold @else Available @endif</span>
-                    </h4> -->
-
                     <div class="clerfix"></div>
                     <div class="table-responsive">
                         <table class="table table-bordered table-centered mb-0">
@@ -77,18 +63,6 @@
                                         <span class="badge badge-info text-uppercase">{{ $purchase->device_type }}</span></td>
                                     </tr>
                                 @endif
-                                <!-- @if($purchase->model)
-                                <tr>
-                                    <th>Model:</th>
-                                    <td>{{ $purchase->model }}</td>
-                                </tr>
-                                @endif -->
-                                {{--
-                                <tr>
-                                    <th>Brand:</th>
-                                    <td>{{ $purchase->brand }}</td>
-                                </tr>
-                                --}}
                                 @if($purchase->imei)
                                 <tr>
                                     <th>IMEI:</th>
@@ -187,7 +161,7 @@
                                         @endif
                                     </td>
                                 </tr>
-                                <!-- <tr>
+                                {{-- <tr>
                                     <td>Battery Health(%)</td>
                                     <td>
                                         <div class="row align-items-center no-gutters">
@@ -196,12 +170,12 @@
                                             </div>
                                             <div class="col">
                                                 <div class="progress progress-sm">
-                                                    <div class="progress-bar bg-success" role="progressbar" style="width: 8%" aria-valuenow="8" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    <div class="progress-bar bg-success" role="progressbar" style="width: 56%" aria-valuenow="8" aria-valuemin="0" aria-valuemax="100"></div>
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
-                                </tr> -->
+                                </tr> --}}
                             </tbody>
                         </table>
                     </div>
