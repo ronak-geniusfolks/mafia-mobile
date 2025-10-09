@@ -299,7 +299,7 @@ class PurchaseController extends Controller
         $result = Purchase::insert($purchasesData);
 
         $message = count($purchasesData) . " stock items added successfully for model '"
-            . e($request->model) . "' (Total Cost: $" . number_format($totalCost, 2) . ")";
+            . e($request->model) . "' (Total Cost: ₹" . number_format($totalCost, 2) . ")";
 
         return redirect()->route('allpurchases')->withStatus($result ? $message : 'Failed to add stock items');
     }
