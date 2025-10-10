@@ -55,34 +55,22 @@
                                 </div>
                             </div>
 
-                            {{-- Row 2: IMEI + Storage --}}
+                            {{-- Row 2: IMEI --}}
                             <div class="row mb-3">
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <label for="imei" class="form-label fw-semibold">IMEI <span class="text-danger">*</span></label>
                                     <input type="text" id="imei" class="form-control form-control @error('imei') is-invalid @enderror" name="imei"
                                         value="{{ old('imei',$purchase->imei) }}" required>
                                 </div>
+                            </div>
+
+                            {{-- Row 3: Storage + Color --}}
+                            <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="storage" class="form-label fw-semibold">Storage (GB) <span
                                             class="text-danger">*</span></label>
                                     <input type="text" id="storage" class="form-control form-control @error('storage') is-invalid @enderror"
                                         name="storage" value="{{ old('storage',$purchase->storage) }}" required>
-                                </div>
-                            </div>
-
-                            {{-- Row 3: Warranty + Color --}}
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="warrenty" class="form-label fw-semibold">Brand Warranty <span
-                                            class="text-danger">*</span></label>
-                                    <select class="form-select form-control" id="warrenty" name="warrenty" value="{{ old('warrenty',$purchase->warrenty) ?? 'Non warrenty' }}" required>
-                                        <option value="Non warrenty" @selected(old('warrenty',$purchase->warrenty) == 'Non warrenty')>Non Warranty</option>
-                                        <option value="Warrenty" @selected(old('warrenty',$purchase->warrenty) == 'Warrenty')>Warranty</option>
-                                    </select>
-                                    <div class="warrentydate" style="display:none;">
-                                        <input type="date" id="warrentydate" class="form-control form-control" name="warrentydate"
-                                            value="{{ old('warrentydate',$purchase->warrentydate) }}">
-                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="color" class="form-label fw-semibold">Color <span class="text-danger">*</span></label>
