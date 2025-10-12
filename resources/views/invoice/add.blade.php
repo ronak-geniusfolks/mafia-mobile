@@ -68,12 +68,17 @@
                         </div>
 
                         <div class="row">
-                            {{-- <div class="col-md-4">
+                            <div class="col-md-4">
                                 <div class="form-group mb-3">
-                                    <label for="customer_no">Contact No:* <span class="pl-2"><input type="checkbox" name="customer_no_sync" id="customer_no_sync"><label class="pl-1 mb-0">Would you like to sync with your phone?</label></span> </label>
+                                    <label for="customer_no">Contact No:*
+                                        {{-- <span class="pl-2">
+                                            <input type="checkbox" name="customer_no_sync" id="customer_no_sync">
+                                            <label class="pl-1 mb-0">Would you like to sync with your phone?</label>
+                                        </span> --}}
+                                    </label>
                                     <input type="text" name="customer_no" class="form-control border-bottom" id="customer_no" maxlength="10" tabindex="5" placeholder="Customer mobile">
                                 </div>
-                            </div> --}}
+                            </div>
                             <div class="col-md-5">
                                 <div class="form-group mb-3">
                                     <label for="customer_address">Address:</label>
