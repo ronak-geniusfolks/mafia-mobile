@@ -20,18 +20,6 @@
             position: relative;
         }
 
-        .page-container::before {
-            content: attr(data-company-name);
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 120px;
-            color: rgba(0, 0, 0, 0.05);
-            font-weight: bold;
-            z-index: 1;
-            pointer-events: none;
-        }
 
         .invoice-box {
             width: 100%;
@@ -368,7 +356,7 @@
         $companyNameUpper = strtoupper($companyName);
     @endphp
 
-    <div class="page-container" data-company-name="{{ $companyName }}">
+    <div class="page-container">
         <!-- Add 200px top margin for company stamp paper - only when printing -->
         <div class="print-top-margin"></div>
         
