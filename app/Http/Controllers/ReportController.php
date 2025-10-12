@@ -328,7 +328,7 @@ class ReportController extends Controller
             ->select('customer_name', 'customer_no')
             ->distinct()
             ->orderBy('created_at', 'desc')->get();
-        $fileName = 'vision-customers.csv';
+        $fileName = 'mafia-mobile-customers.csv';
         $headers = [
             'Content-type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=$fileName",
