@@ -325,6 +325,10 @@
         }
 
         /* ---------- PRINT FIXES ---------- */
+        .print-top-margin {
+            height: 0;
+        }
+
         /* while print make the page center */
         /* add margin: 0 auto; */
         @media print {
@@ -351,6 +355,11 @@
             .invoice-box {
                 padding: 15mm;
             }
+
+            /* Add 200px top margin only when printing */
+            .print-top-margin {
+                height: 200px;
+            }
         }
     </style>
 
@@ -360,19 +369,10 @@
     @endphp
 
     <div class="page-container" data-company-name="{{ $companyName }}">
+        <!-- Add 200px top margin for company stamp paper - only when printing -->
+        <div class="print-top-margin"></div>
+        
         <div class="invoice-box">
-
-            <!-- Decorative Header -->
-            <div class="decorative-header">
-                <div class="decorative-border">
-                    <div class="border-text">{{ $companyNameUpper }}</div>
-                    <div class="central-logo">
-                        <img src="{{asset('assets/images/new_logo/main_logo.png')}}" alt="Company Logo">
-                    </div>
-                    <div class="border-text">{{ $companyNameUpper }}</div>
-                </div>
-            </div>
-
             <div class="invoice-body">
                 <!-- Bill of Supply Section -->
                 <div class="bill-of-supply">
