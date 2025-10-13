@@ -140,9 +140,10 @@ class InvoiceController extends Controller
 
     public function invoiceDetail($id)
     {
-        $invoice = Invoice::findOrFail($id);
+        $invoice = Invoice::with(['purchase', 'user'])->findOrFail($id);
+        $amountInWords = $this->amoutInWords(floatval($invoice->net_amount));
 
-        return view('invoice.detail', ['invoice' => $invoice]);
+        return view('invoice.detail', ['invoice' => $invoice, 'amountInWords' => $amountInWords]);
     }
 
     public function printInvoice($id)
