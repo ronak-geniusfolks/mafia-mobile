@@ -20,18 +20,6 @@
             position: relative;
         }
 
-        .page-container::before {
-            content: attr(data-company-name);
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 120px;
-            color: rgba(0, 0, 0, 0.05);
-            font-weight: bold;
-            z-index: 1;
-            pointer-events: none;
-        }
 
         .invoice-box {
             width: 100%;
@@ -325,6 +313,10 @@
         }
 
         /* ---------- PRINT FIXES ---------- */
+        .print-top-margin {
+            height: 0;
+        }
+
         /* while print make the page center */
         /* add margin: 0 auto; */
         @media print {
@@ -351,6 +343,11 @@
             .invoice-box {
                 padding: 15mm;
             }
+
+            /* Add 200px top margin only when printing */
+            .print-top-margin {
+                height: 200px;
+            }
         }
     </style>
 
@@ -359,20 +356,11 @@
         $companyNameUpper = strtoupper($companyName);
     @endphp
 
-    <div class="page-container" data-company-name="{{ $companyName }}">
+    <div class="page-container">
+        <!-- Add 200px top margin for company stamp paper - only when printing -->
+        <div class="print-top-margin"></div>
+        
         <div class="invoice-box">
-
-            <!-- Decorative Header -->
-            <div class="decorative-header">
-                <div class="decorative-border">
-                    <div class="border-text">{{ $companyNameUpper }}</div>
-                    <div class="central-logo">
-                        <img src="{{asset('assets/images/new_logo/main_logo.png')}}" alt="Company Logo">
-                    </div>
-                    <div class="border-text">{{ $companyNameUpper }}</div>
-                </div>
-            </div>
-
             <div class="invoice-body">
                 <!-- Bill of Supply Section -->
                 <div class="bill-of-supply">
