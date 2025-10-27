@@ -36,7 +36,9 @@ jQuery(document).ready(function () {
         }
     });
 
-    jQuery("#model_imei").on("blur", function (e) {
+    // Function to fetch product data based on IMEI
+    // @param shouldSubmitForm: boolean to indicate if form should be submitted after successful fetch
+    function fetchProductByIMEI(shouldSubmitForm) {
         var modelIMEI = jQuery("#model_imei").val();
         if (modelIMEI) {
             jQuery.ajax({
@@ -66,6 +68,11 @@ jQuery(document).ready(function () {
                         $("#itemID").val(data.purchase["id"]);
                         $("#item_description").html(descriptionTxt);
                         $("#quantity").val(data.count);
+                        
+                        // Submit form if shouldSubmitForm is true
+                        if (shouldSubmitForm) {
+                            $("#model_imei").closest("form").submit();
+                        }
                     } else {
                         $("#parsley-id-imei").show();
                         $("#parsley-id-imei").focus();
@@ -78,6 +85,23 @@ jQuery(document).ready(function () {
             });
         } else {
             $(".defaulthide").hide();
+            // Submit form if shouldSubmitForm is true even if IMEI is empty
+            if (shouldSubmitForm) {
+                $("#model_imei").closest("form").submit();
+            }
+        }
+    }
+
+    // Handle blur event (don't submit form on blur)
+    jQuery("#model_imei").on("blur", function (e) {
+        fetchProductByIMEI(false);
+    });
+
+    // Handle Enter key press to trigger product fetch and then form submission
+    jQuery("#model_imei").on("keydown", function (e) {
+        if (e.which === 13) { // Enter key
+            e.preventDefault(); // Prevent immediate form submission
+            fetchProductByIMEI(true); // Fetch data first, then submit
         }
     });
 

@@ -75,6 +75,9 @@
                                             </a>
                                             <a href="{{ route('print-invoice', $invoice->id) }}"  class="btn btn-success waves-effect waves-light" title="print"><i class="mdi mdi-printer"></i>
                                             </a>
+                                            <button type="button" class="btn btn-danger waves-effect waves-light delete-invoice" data-id="{{ $invoice->id }}" title="Delete">
+                                                <i class="mdi mdi-delete"></i>
+                                            </button>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -91,4 +94,36 @@
     </div>
     
 </div>
+
+@section('scripts')
+<script>
+    $(document).ready(function() {
+        // Handle delete button click
+        $('.delete-invoice').on('click', function() {
+            var invoiceId = $(this).data('id');
+            var deleteUrl = '/admin/invoice/delete/' + invoiceId;
+            
+            // Show confirmation dialog
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Create a form and submit it
+                    var form = $('<form method="POST" action="' + deleteUrl + '"></form>');
+                    form.append('<input type="hidden" name="_token" value="{{ csrf_token() }}">');
+                    $('body').append(form);
+                    form.submit();
+                }
+            });
+        });
+    });
+</script>
+@endsection
 @endSection
