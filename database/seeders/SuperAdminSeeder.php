@@ -55,6 +55,7 @@ class SuperAdminSeeder extends Seeder
             'invoices.edit',
             'invoices.print',
             'invoices.detail',
+            'invoices.delete',
 
             // Reports
             'reports.sales.view',

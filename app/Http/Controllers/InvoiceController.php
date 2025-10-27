@@ -238,6 +238,24 @@ class InvoiceController extends Controller
         return redirect()->route('allinvoices')->withStatus('Invoice Updated Successfully..');
     }
 
+    public function deleteInvoice($id)
+    {
+        $invoice = Invoice::findOrFail($id);
+        
+        // Soft delete the invoice
+        $invoice->update(['deleted' => 1]);
+        
+        // Mark the purchase as unsold so it can be sold again
+        if ($invoice->purchase) {
+            $invoice->purchase->update([
+                'is_sold' => 0,
+                'sell_date' => null
+            ]);
+        }
+        
+        return redirect()->route('allinvoices')->withStatus('Invoice Deleted Successfully.');
+    }
+
     public function amoutInWords(float $amount): string
     {
         $amount_after_decimal = round($amount - ($num = floor($amount)), 2) * 100;
