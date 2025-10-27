@@ -129,6 +129,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/invoice/print/{id}', [InvoiceController::class, 'printInvoice'])->middleware('permission:invoices.print')->name('print-invoice');
     Route::get('/admin/invoice/edit/{id}', [InvoiceController::class, 'editInvoice'])->middleware('permission:invoices.edit')->name('invoice-edit');
     Route::post('/admin/invoice/update/{id}', [InvoiceController::class, 'updateInvoice'])->middleware('permission:invoices.edit')->name('invoice-update');
+    Route::post('/admin/invoice/delete/{id}', [InvoiceController::class, 'deleteInvoice'])->middleware('permission:invoices.delete')->name('invoice-delete');
 });
 
 // Reports
