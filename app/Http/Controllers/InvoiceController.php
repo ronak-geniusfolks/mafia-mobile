@@ -2,10 +2,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\Purchase;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class InvoiceController extends Controller
@@ -19,7 +21,7 @@ class InvoiceController extends Controller
 
     public function index()
     {
-        $allInvoices = Invoice::where('deleted', 0)->orderBy('invoice_date', 'desc')->get();
+        $allInvoices = Invoice::with('items')->where('deleted', 0)->orderBy('invoice_date', 'desc')->get();
 
         return view('invoice.index', ['allInvoices' => $allInvoices]);
     }
@@ -72,75 +74,110 @@ class InvoiceController extends Controller
             }
         }
 
+        // Validate request
         $request->validate([
-            'item_id'          => ['required', Rule::unique('invoices')->where(fn($q) => $q->where('deleted', 0))],
-            'customer_name'    => 'required|string|max:255',
-            'item_description' => 'required|string',
-            'invoice_date'     => 'required|date',
-            'invoice_no'       => 'required|string',
-            'total_amount'     => 'required|numeric|min:0',
-            'net_amount'       => 'required|numeric|min:0',
-            'payment_type'     => 'required|string',
+            'items'             => 'required|array|min:1',
+            'items.*.item_id'   => 'required|integer|exists:purchases,id',
+            'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.quantity'  => 'required|integer|min:1',
+            'customer_name'     => 'required|string|max:255',
+            'invoice_date'      => 'required|date',
+            'invoice_no'        => 'required|string',
+            'total_amount'      => 'required|numeric|min:0',
+            'net_amount'        => 'required|numeric|min:0',
+            'payment_type'      => 'required|string',
         ]);
 
-        $purchase = Purchase::findOrFail($request->item_id);
+        // Use database transaction
+        DB::beginTransaction();
+        try {
+            // Create invoice
+            $invoice = Invoice::create([
+                'customer_name'        => $request->customer_name,
+                'customer_no'          => $request->customer_no,
+                'customer_address'     => $request->customer_address ?? null,
+                'invoice_date'         => $request->invoice_date,
+                'warranty_expiry_date' => $request->warranty_expiry_date ?? null,
+                'invoice_no'           => $request->invoice_no,
+                'total_amount'         => $request->total_amount,
+                'net_amount'           => $request->net_amount,
+                'cgst_rate'            => $request->cgst_rate ?? 0,
+                'sgst_rate'            => $request->sgst_rate ?? 0,
+                'igst_rate'            => $request->igst_rate ?? 0,
+                'cgst_amount'          => $request->cgst_amount ?? 0,
+                'sgst_amount'          => $request->sgst_amount ?? 0,
+                'igst_amount'          => $request->igst_amount ?? 0,
+                'tax_amount'           => $request->tax_amount ?? 0,
+                'discount'             => $request->discount_amount ?? 0,
+                'discount_rate'        => $request->discount_rate ?? 0,
+                'declaration'          => $request->declaration ?? null,
+                'payment_type'         => $request->payment_type,
+                'is_paid'              => 1,
+                'invoice_by'           => Auth::id(),
+            ]);
 
-        $profit = floatval($request->net_amount - $purchase->purchase_price);
-
-        $invoice = Invoice::create([
-            'item_id'              => $request->item_id,
-            'item_description'     => $request->item_description,
-            'customer_name'        => $request->customer_name,
-            'customer_no'          => $request->customer_no,
-            'invoice_date'         => $request->invoice_date,
-            'warranty_expiry_date' => $request->warranty_expiry_date ?? null,
-            'invoice_no'           => $request->invoice_no,
-            'total_amount'         => $request->total_amount,
-            'net_amount'           => $request->net_amount,
-            'cgst_rate'            => $request->cgst_rate ?? 0,
-            'sgst_rate'            => $request->sgst_rate ?? 0,
-            'igst_rate'            => $request->igst_rate ?? 0,
-            'cgst_amount'          => $request->cgst_amount ?? 0,
-            'sgst_amount'          => $request->sgst_amount ?? 0,
-            'igst_amount'          => $request->igst_amount ?? 0,
-            'declaration'          => $request->declaration ?? null,
-            'tax_amount'           => $request->tax_amount ?? 0,
-            'discount'             => $request->discount_amount ?? 0,
-            'discount_rate'        => $request->discount_rate ?? 0,
-            'quantity'             => $request->quantity ?? 1,
-            'customer_address'     => $request->customer_address ?? null,
-            'payment_type'         => $request->payment_type,
-            'is_paid'              => 1,
-            'profit'               => $profit,
-            'invoice_by'           => Auth::id(),
-        ]);
-
-        // Mark purchase as sold
-        $purchase->update([
-            'is_sold'   => 1,
-            'sell_date' => $request->invoice_date,
-        ]);
-
-        if ($request->customer_no_sync == 'on') {
-            $request->merge(['invoice_id' => $invoice->id]);
-
-            $result = $this->googleContactService->syncContact($request);
-
-            if (!$result['success']) {
-                if (isset($result['redirect'])) {
-                    return redirect()->to($result['redirect']);
+            // Create invoice items and mark purchases as sold
+            $totalProfit = 0;
+            foreach ($request->items as $item) {
+                $purchase = Purchase::findOrFail($item['item_id']);
+                
+                // Check if item is already sold
+                if ($purchase->is_sold) {
+                    DB::rollBack();
+                    return back()->withErrors(['error' => 'Item ' . $purchase->imei . ' is already sold.'])->withInput();
                 }
-                return response()->json(['error' => $result['error'] ?? 'Contact sync failed'], 500);
+                
+                $unitPrice = $item['unit_price'];
+                $totalAmount = $unitPrice * $item['quantity'];
+                $profit = ($unitPrice - $purchase->purchase_price) * $item['quantity'];
+                
+                // Create invoice item
+                InvoiceItem::create([
+                    'invoice_id'       => $invoice->id,
+                    'item_id'          => $item['item_id'],
+                    'item_description' => $item['item_description'],
+                    'quantity'         => $item['quantity'],
+                    'unit_price'       => $unitPrice,
+                    'total_amount'     => $totalAmount,
+                    'profit'           => $profit,
+                ]);
+                
+                $totalProfit += $profit;
+                
+                // Mark purchase as sold
+                $purchase->update([
+                    'is_sold'   => 1,
+                    'sell_date' => $request->invoice_date,
+                ]);
             }
-        }
 
-        return redirect()->route('print-invoice', $invoice->id);
+            DB::commit();
+
+            // Handle Google contact sync
+            if ($request->customer_no_sync == 'on') {
+                $request->merge(['invoice_id' => $invoice->id]);
+                $result = $this->googleContactService->syncContact($request);
+                
+                if (!$result['success']) {
+                    if (isset($result['redirect'])) {
+                        return redirect()->to($result['redirect']);
+                    }
+                    return response()->json(['error' => $result['error'] ?? 'Contact sync failed'], 500);
+                }
+            }
+
+            return redirect()->route('print-invoice', $invoice->id);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'An error occurred: ' . $e->getMessage()])->withInput();
+        }
     }
 
 
     public function invoiceDetail($id)
     {
-        $invoice = Invoice::with(['purchase', 'user'])->findOrFail($id);
+        $invoice = Invoice::with(['items.purchase', 'user'])->findOrFail($id);
         $amountInWords = $this->amoutInWords(floatval($invoice->net_amount));
 
         return view('invoice.detail', ['invoice' => $invoice, 'amountInWords' => $amountInWords]);
@@ -148,7 +185,7 @@ class InvoiceController extends Controller
 
     public function printInvoice($id)
     {
-        $invoice       = Invoice::with(['purchase', 'user'])->findOrFail($id);
+        $invoice       = Invoice::with(['items.purchase', 'user'])->findOrFail($id);
         $amountInWords = $this->amoutInWords(floatval($invoice->net_amount));
 
         return view('invoice.print', ['invoice' => $invoice, 'amountInWords' => $amountInWords]);
@@ -169,7 +206,7 @@ class InvoiceController extends Controller
 
     public function editInvoice($id)
     {
-        $invoice     = Invoice::findOrFail($id);
+        $invoice     = Invoice::with('items.purchase')->findOrFail($id);
         $stocksModel = Purchase::where('deleted', 0)->orderBy('purchase_date', 'desc')->get();
 
         return view('invoice.edit', ['invoice' => $invoice, 'stocksModel' => $stocksModel]);
@@ -241,20 +278,33 @@ class InvoiceController extends Controller
 
     public function deleteInvoice($id)
     {
-        $invoice = Invoice::findOrFail($id);
-        
-        // Soft delete the invoice
-        $invoice->update(['deleted' => 1]);
-        
-        // Mark the purchase as unsold so it can be sold again
-        if ($invoice->purchase) {
-            $invoice->purchase->update([
-                'is_sold' => 0,
-                'sell_date' => null
-            ]);
+        DB::beginTransaction();
+        try {
+            $invoice = Invoice::with('items.purchase')->findOrFail($id);
+            
+            // Mark the purchases as unsold so they can be sold again
+            foreach ($invoice->items as $item) {
+                if ($item->purchase) {
+                    $item->purchase->update([
+                        'is_sold' => 0,
+                        'sell_date' => null
+                    ]);
+                }
+            }
+            
+            // Soft delete invoice items
+            $invoice->items()->update(['deleted' => 1]);
+            
+            // Soft delete the invoice
+            $invoice->update(['deleted' => 1]);
+            
+            DB::commit();
+            
+            return redirect()->route('allinvoices')->withStatus('Invoice Deleted Successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'An error occurred while deleting the invoice.']);
         }
-        
-        return redirect()->route('allinvoices')->withStatus('Invoice Deleted Successfully.');
     }
 
     public function amoutInWords(float $amount): string
