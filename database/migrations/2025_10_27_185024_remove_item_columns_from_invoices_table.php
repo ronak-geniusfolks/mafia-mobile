@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::table('invoices', function (Blueprint $table) {
             // Drop columns that have been moved to invoice_items table
-            $table->dropColumn(['item_id', 'item_description', 'quantity', 'profit']);
+            $table->dropColumn(['item_id', 'item_description', 'quantity', 'profit', 'warranty_expiry_date']);
         });
     }
 
@@ -29,6 +29,7 @@ return new class extends Migration
             $table->text('item_description')->nullable();
             $table->integer('quantity')->default(0);
             $table->float('profit', 10, 2)->nullable();
+            $table->date('warranty_expiry_date')->nullable();
         });
     }
 };

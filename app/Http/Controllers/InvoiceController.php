@@ -120,30 +120,37 @@ class InvoiceController extends Controller
             $totalProfit = 0;
             foreach ($request->items as $item) {
                 $purchase = Purchase::findOrFail($item['item_id']);
-                
+
                 // Check if item is already sold
                 if ($purchase->is_sold) {
                     DB::rollBack();
                     return back()->withErrors(['error' => 'Item ' . $purchase->imei . ' is already sold.'])->withInput();
                 }
-                
+
                 $unitPrice = $item['unit_price'];
                 $totalAmount = $unitPrice * $item['quantity'];
                 $profit = ($unitPrice - $purchase->purchase_price) * $item['quantity'];
-                
+
+                // Convert warranty date if provided
+                $warrantyDate = null;
+                if (!empty($item['warranty_expiry_date'])) {
+                    $warrantyDate = Carbon::createFromFormat('d/m/Y', $item['warranty_expiry_date'])->format('Y-m-d');
+                }
+
                 // Create invoice item
                 InvoiceItem::create([
-                    'invoice_id'       => $invoice->id,
-                    'item_id'          => $item['item_id'],
-                    'item_description' => $item['item_description'],
-                    'quantity'         => $item['quantity'],
-                    'unit_price'       => $unitPrice,
-                    'total_amount'     => $totalAmount,
-                    'profit'           => $profit,
+                    'invoice_id'         => $invoice->id,
+                    'item_id'            => $item['item_id'],
+                    'item_description'   => $item['item_description'],
+                    'quantity'           => $item['quantity'],
+                    'unit_price'         => $unitPrice,
+                    'total_amount'       => $totalAmount,
+                    'warranty_expiry_date' => $warrantyDate,
+                    'profit'             => $profit,
                 ]);
-                
+
                 $totalProfit += $profit;
-                
+
                 // Mark purchase as sold
                 $purchase->update([
                     'is_sold'   => 1,
@@ -157,7 +164,7 @@ class InvoiceController extends Controller
             if ($request->customer_no_sync == 'on') {
                 $request->merge(['invoice_id' => $invoice->id]);
                 $result = $this->googleContactService->syncContact($request);
-                
+
                 if (!$result['success']) {
                     if (isset($result['redirect'])) {
                         return redirect()->to($result['redirect']);
@@ -167,7 +174,7 @@ class InvoiceController extends Controller
             }
 
             return redirect()->route('print-invoice', $invoice->id);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'An error occurred: ' . $e->getMessage()])->withInput();
@@ -214,7 +221,7 @@ class InvoiceController extends Controller
 
     public function updateInvoice(Request $request, $id)
     {
-        $invoice    = Invoice::findOrFail($id);
+        $invoice = Invoice::with('items.purchase')->findOrFail($id);
 
         // Convert date format from dd/mm/yyyy to Y-m-d using Carbon
         if ($request->invoice_date) {
@@ -237,43 +244,106 @@ class InvoiceController extends Controller
 
         // Validate dates after conversion
         $request->validate([
-            'invoice_date' => 'required|date',
-            'warranty_expiry_date' => 'nullable|date',
+            'items'             => 'required|array|min:1',
+            'items.*.item_id'   => 'required|integer|exists:purchases,id',
+            'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.quantity'  => 'required|integer|min:1',
+            'customer_name'     => 'required|string|max:255',
+            'invoice_date'      => 'required|date',
+            'invoice_no'        => 'required|string',
+            'total_amount'      => 'required|numeric|min:0',
+            'net_amount'        => 'required|numeric|min:0',
+            'payment_type'      => 'required|string',
         ]);
 
-        $updateData = $request->all();
+        // Use database transaction
+        DB::beginTransaction();
+        try {
+            // Mark all old purchases as unsold
+            foreach ($invoice->items as $item) {
+                if ($item->purchase) {
+                    $item->purchase->update([
+                        'is_sold'   => 0,
+                        'sell_date' => null
+                    ]);
+                }
+            }
 
-        // check if contact name or contact number is chagnges?
-        $isContactInformationChanges = false;
-        if ($invoice->customer_name != $request->customer_name || $invoice->customer_no != $request->customer_no) {
-            $isContactInformationChanges = true;
-        }
+            // Delete old invoice items
+            $invoice->items()->delete();
 
-        if (isset($updateData['customer_no_sync'])) {
-            unset($updateData['customer_no_sync']);
-        }
+            // Update invoice details
+            $invoice->update([
+                'customer_name'        => $request->customer_name,
+                'customer_no'          => $request->customer_no,
+                'customer_address'     => $request->customer_address ?? null,
+                'invoice_date'         => $request->invoice_date,
+                'total_amount'         => $request->total_amount,
+                'net_amount'           => $request->net_amount,
+                'cgst_rate'            => $request->cgst_rate ?? 0,
+                'sgst_rate'            => $request->sgst_rate ?? 0,
+                'igst_rate'            => $request->igst_rate ?? 0,
+                'cgst_amount'          => $request->cgst_amount ?? 0,
+                'sgst_amount'          => $request->sgst_amount ?? 0,
+                'igst_amount'          => $request->igst_amount ?? 0,
+                'tax_amount'           => $request->tax_amount ?? 0,
+                'discount'             => $request->discount_amount ?? 0,
+                'discount_rate'        => $request->discount_rate ?? 0,
+                'declaration'          => $request->declaration ?? null,
+                'payment_type'         => $request->payment_type,
+                'invoice_by'           => Auth::id(),
+            ]);
 
-        $updateData['profit']     = floatval($request->net_amount - Purchase::findOrFail($request->item_id)->purchase_price);
-        $updateData['customer_address'] = $request->customer_address ?? null;
-        $updateData['invoice_by'] = Auth::user()->id;
-        $invoice->update($updateData);
+            // Create new invoice items and mark purchases as sold
+            $totalProfit = 0;
+            foreach ($request->items as $item) {
+                $purchase = Purchase::findOrFail($item['item_id']);
 
-        $customer_no_sync = $request->customer_no_sync;
-        if ($customer_no_sync == 'on' && $isContactInformationChanges) {
-            $request->merge(['invoice_id' => $invoice->id]);
-            $result = $this->googleContactService->syncContact($request);
-            if ($result['success'] == false) {
-                if (isset($result['redirect'])) {
-                    // Redirect the user to the Google authentication page (or other redirect URL)
-                    return redirect()->to($result['redirect']);
+                // Check if item is already sold
+                if ($purchase->is_sold) {
+                    DB::rollBack();
+                    return back()->withErrors(['error' => 'Item ' . $purchase->imei . ' is already sold.'])->withInput();
                 }
 
-                // If no redirect URL is set, return an error message
-                return response()->json(['error' => $result['error']], 500);
-            }
-        }
+                $unitPrice = $item['unit_price'];
+                $totalAmount = $unitPrice * $item['quantity'];
+                $profit = ($unitPrice - $purchase->purchase_price) * $item['quantity'];
 
-        return redirect()->route('allinvoices')->withStatus('Invoice Updated Successfully..');
+                // Convert warranty date if provided
+                $warrantyDate = null;
+                if (!empty($item['warranty_expiry_date'])) {
+                    $warrantyDate = Carbon::createFromFormat('d/m/Y', $item['warranty_expiry_date'])->format('Y-m-d');
+                }
+
+                // Create invoice item
+                InvoiceItem::create([
+                    'invoice_id'         => $invoice->id,
+                    'item_id'            => $item['item_id'],
+                    'item_description'   => $item['item_description'],
+                    'quantity'           => $item['quantity'],
+                    'unit_price'         => $unitPrice,
+                    'total_amount'       => $totalAmount,
+                    'warranty_expiry_date' => $warrantyDate,
+                    'profit'             => $profit,
+                ]);
+
+                $totalProfit += $profit;
+
+                // Mark purchase as sold
+                $purchase->update([
+                    'is_sold'   => 1,
+                    'sell_date' => $request->invoice_date,
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->route('allinvoices')->withStatus('Invoice Updated Successfully..');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'An error occurred: ' . $e->getMessage()])->withInput();
+        }
     }
 
     public function deleteInvoice($id)
@@ -281,7 +351,7 @@ class InvoiceController extends Controller
         DB::beginTransaction();
         try {
             $invoice = Invoice::with('items.purchase')->findOrFail($id);
-            
+
             // Mark the purchases as unsold so they can be sold again
             foreach ($invoice->items as $item) {
                 if ($item->purchase) {
@@ -291,15 +361,15 @@ class InvoiceController extends Controller
                     ]);
                 }
             }
-            
+
             // Soft delete invoice items
             $invoice->items()->update(['deleted' => 1]);
-            
+
             // Soft delete the invoice
             $invoice->update(['deleted' => 1]);
-            
+
             DB::commit();
-            
+
             return redirect()->route('allinvoices')->withStatus('Invoice Deleted Successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
