@@ -22,4 +22,12 @@ class Invoice extends Model
     {
         return $this->belongsTo(Purchase::class, 'item_id', 'id');
     }
+
+    /**
+     * Get all items for this invoice.
+     */
+    public function items()
+    {
+        return $this->hasMany(InvoiceItem::class);
+    }
 }
