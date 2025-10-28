@@ -407,18 +407,24 @@
                         </tr>
                     </thead>
                     <tbody>
+                        @forelse($invoice->items as $index => $item)
                         <tr>
-                            <td>1</td>
+                            <td>{{ $index + 1 }}</td>
                             <td class="description">
-                                {{ $invoice->item_description }}
-                                @if($invoice->purchase && $invoice->purchase->imei)
-                                    <div class="imei">IMEI {{ $invoice->purchase->imei }}</div>
+                                {{ $item->item_description }}
+                                @if($item->purchase && $item->purchase->imei)
+                                    <div class="imei">IMEI {{ $item->purchase->imei }}</div>
                                 @endif
                             </td>
-                            <td>{{ $invoice->quantity ?? 1 }} Unit</td>
-                            <td>₹{{ number_format($invoice->total_amount, 2) }}</td>
-                            <td>₹{{ number_format($invoice->net_amount, 2) }}</td>
+                            <td>{{ $item->quantity ?? 1 }} Unit</td>
+                            <td>₹{{ number_format($item->unit_price, 2) }}</td>
+                            <td>₹{{ number_format($item->total_amount, 2) }}</td>
                         </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="text-center">No items found</td>
+                        </tr>
+                        @endforelse
                     </tbody>
                 </table>
 

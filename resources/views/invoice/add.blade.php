@@ -84,60 +84,45 @@
                             <div class="col-12">
                                 <h4 class="header-title text-uppercase">Item Details</h4>
                                 <hr>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 border p-1 text-center">
-                                <b>DESCRIPTIONS</b>
-                            </div>
-                            <div class="col-md-2 border p-1 text-center">
-                                <b>QUANTITY</b>
-                            </div>
-                            <div class="col-md-4 border p-1 text-center">
-                                <b>TOTAL AMOUNT</b>
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-12">
-                                <button type="button" class="btn btn-sm btn-success mb-2" id="addItemBtn">
+                                <button type="button" class="btn btn-sm btn-success mb-3" id="addItemBtn">
                                     <i class="mdi mdi-plus"></i> Add Item
                                 </button>
-                                <div id="itemsContainer"></div>
                             </div>
                         </div>
+
+                        <div id="itemsContainer" class="mb-3"></div>
 
                         <div class="row mt-0">
                             <div class="col-md-2">
                                 <label>CGST (%)</label>
-                                <input type="text" class="form-control border-bottom" placeholder="CGST Rate" name="cgst_rate" id="cgst" oninput="calculateNetAmount()" tabindex="9">
+                                <input type="text" class="form-control border-bottom" placeholder="CGST Rate" name="cgst_rate" id="cgst" tabindex="9">
                                 <span class="float-right gststyle" id="cgstDisplay">0</span>
                                 <input type="hidden" id="cgstAmount" name="cgst_amount" value="0">
                             </div>
 
                             <div class="col-md-2">
                                 <label>SGST (%)</label>
-                                <input type="text" class="form-control border-bottom" placeholder="SGST Rate" name="sgst_rate" id="sgst" oninput="calculateNetAmount()" tabindex="10">
+                                <input type="text" class="form-control border-bottom" placeholder="SGST Rate" name="sgst_rate" id="sgst" tabindex="10">
                                 <span class="float-right gststyle" id="sgstDisplay">0</span>
                                 <input type="hidden" id="sgstAmount" name="sgst_amount" value="0">
                             </div>
 
                             <div class="col-md-2">
                                 <label>IGST (%)</label>
-                                <input type="text" class="form-control border-bottom" placeholder="IGST Rate" name="igst_rate" id="igst" oninput="calculateNetAmount()" tabindex="11">
+                                <input type="text" class="form-control border-bottom" placeholder="IGST Rate" name="igst_rate" id="igst" tabindex="11">
                                 <span class="float-right gststyle" id="igstDisplay">0</span>
                                 <input type="hidden" id="igstAmount" name="igst_amount" value="0">
                             </div>
                             <div class="col-md-2">
                                 <label>Discount Amount</label>
-                                <input type="number" class="form-control border-bottom" placeholder="Discount" name="discount_amount" id="discAmount" oninput="calculateNetAmount()" min="0" tabindex="12">
+                                <input type="number" class="form-control border-bottom" placeholder="Discount" name="discount_amount" id="discAmount" min="0" tabindex="12">
                             </div>
 
                             <div class="col-md-4">
                                 <ul style="list-style: none;float: right;">
                                     <li>
                                         <b>Total Amount:</b> ₹ <span type="text" id="totalAmountDisplay">0</span>
+                                        <input type="hidden" value="0" name="total_amount" id="totalAmountInput">
                                     </li>
                                     <li>
                                         <b>Discount:</b> ₹ <span type="text" id="discountAmount">0</span>
@@ -182,11 +167,51 @@ let itemCounter = 0;
     addItemRow();
     $(document).on('click', '#addItemBtn', addItemRow);
     $(document).on('click', '.remove-item', function() {
+        // Prevent removing if only one item exists
+        if ($('.item-row').length <= 1) {
+            alert('At least one item is required in the invoice');
+            return;
+        }
         $(this).closest('.item-row').remove();
         calculateTotals();
     });
+    
+    // Validate form submission - at least one item required
+    $('form').on('submit', function(e) {
+        if ($('.item-row').length === 0) {
+            e.preventDefault();
+            alert('Please add at least one item to the invoice');
+            return false;
+        }
+    });
     $(document).on('blur', '.item-imei', function() {
         searchIMEI($(this).closest('.item-row'));
+    });
+    
+    // Also check for duplicates on input change
+    $(document).on('input', '.item-imei', function() {
+        const $row = $(this).closest('.item-row');
+        const imei = $(this).val();
+        
+        // Clear error initially
+        $row.find('.imei-error').hide();
+        
+        // Check for duplicates
+        let duplicateFound = false;
+        $('.item-row').each(function() {
+            const currentRow = $(this);
+            if (currentRow[0] === $row[0]) return;
+            
+            const otherImei = currentRow.find('.item-imei').val();
+            if (otherImei && otherImei === imei) {
+                duplicateFound = true;
+                return false;
+            }
+        });
+        
+        if (duplicateFound && imei) {
+            $row.find('.imei-error').text('This IMEI is already added in another item').show();
+        }
     });
     $(document).on('keydown', '.item-imei', function(e) {
         if (e.which === 13) {
@@ -194,31 +219,87 @@ let itemCounter = 0;
             searchIMEI($(this).closest('.item-row'));
         }
     });
-    $(document).on('input', '.item-price, .item-quantity', function() {
+    // Update item totals when price or quantity changes
+    $(document).on('input keyup change', '.item-price, .item-quantity', function() {
         calculateItemTotal($(this).closest('.item-row'));
     });
-    $(document).on('input', '#cgst, #sgst, #igst, #discAmount', calculateNetAmount);
+    
+    // Update net amount when tax rates or discount changes
+    $(document).on('input keyup change', '#cgst, #sgst, #igst, #discAmount', function() {
+        calculateNetAmount();
+    });
 });
 function addItemRow() {
     itemCounter++;
-    const rowHtml = `<div class="item-row border p-3 mb-2 rounded" data-index="${itemCounter}">
-        <div class="row">
-            <div class="col-md-4"><label>IMEI*:</label><input type="text" class="form-control item-imei" placeholder="Search IMEI.."><input type="hidden" class="item-id" name="items[${itemCounter}][item_id]"><small class="text-danger imei-error" style="display:none;">IMEI Not Found</small></div>
-            <div class="col-md-6"><label>Description:</label><textarea class="form-control item-description" name="items[${itemCounter}][item_description]" rows="2"></textarea></div>
-            <div class="col-md-2 text-right"><button type="button" class="btn btn-sm btn-danger remove-item mt-4"><i class="mdi mdi-delete"></i> Remove</button></div>
+    const rowHtml = `<div class="item-row border p-3 mb-3 rounded" data-index="${itemCounter}">
+        <div class="row mb-2">
+            <div class="col-md-6">
+                <label>IMEI*:</label>
+                <input type="text" class="form-control item-imei" placeholder="Search IMEI..">
+                <input type="hidden" class="item-id" name="items[${itemCounter}][item_id]">
+                <small class="text-danger imei-error" style="display:none;">IMEI Not Found</small>
+            </div>
+            <div class="col-md-2 align-self-end">
+                <button type="button" class="btn btn-sm btn-danger remove-item mt-0" style="width: 100%;">
+                    <i class="mdi mdi-delete"></i> Remove
+                </button>
+            </div>
         </div>
-        <div class="row mt-2">
-            <div class="col-md-3"><label>Quantity*:</label><input type="number" class="form-control item-quantity" name="items[${itemCounter}][quantity]" value="1" min="1"></div>
-            <div class="col-md-3"><label>Unit Price*:</label><input type="number" class="form-control item-price" name="items[${itemCounter}][unit_price]" step="0.01" min="0" placeholder="0.00"></div>
-            <div class="col-md-3"><label>Total:</label><input type="text" class="form-control item-total" readonly value="0.00"></div>
+        <div class="row mb-2">
+            <div class="col-md-3">
+                <label>Warranty Expiry Date:</label>
+                <input type="text" class="form-control item-warranty" name="items[${itemCounter}][warranty_expiry_date]" placeholder="dd/mm/yyyy">
+            </div>
+            <div class="col-md-2">
+                <label>Quantity*:</label>
+                <input type="number" class="form-control item-quantity" name="items[${itemCounter}][quantity]" value="1" min="1">
+            </div>
+            <div class="col-md-3">
+                <label>Unit Price*:</label>
+                <input type="number" class="form-control item-price" name="items[${itemCounter}][unit_price]" step="0.01" min="0" placeholder="0.00">
+            </div>
+            <div class="col-md-4">
+                <label>Total:</label>
+                <input type="text" class="form-control item-total" readonly value="0.00">
+            </div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <label>Description:</label>
+                <textarea class="form-control item-description" name="items[${itemCounter}][item_description]" rows="2"></textarea>
+            </div>
         </div>
     </div>`;
     $('#itemsContainer').append(rowHtml);
     $('.item-imei').last().focus();
+    $('.item-warranty').last().datepicker({dateFormat: 'dd/mm/yy'});
 }
 function searchIMEI($row) {
     const imei = $row.find('.item-imei').val();
     if (!imei) return;
+    
+    // Check for duplicate IMEI in other rows
+    let duplicateFound = false;
+    $('.item-row').each(function() {
+        const currentRow = $(this);
+        // Skip the current row being edited
+        if (currentRow[0] === $row[0]) return;
+        
+        const otherImei = currentRow.find('.item-imei').val();
+        if (otherImei && otherImei === imei) {
+            duplicateFound = true;
+            return false; // break the loop
+        }
+    });
+    
+    if (duplicateFound) {
+        $row.find('.imei-error').text('This IMEI is already added in another item').show();
+        $row.find('.item-id').val('');
+        $row.find('.item-description').val('');
+        $row.find('.item-price').val('0.00');
+        return;
+    }
+    
     $.ajax({
         url: `/admin/fetchstockonimei/${imei}`,
         type: 'GET',
@@ -233,12 +314,12 @@ function searchIMEI($row) {
                 $row.find('.item-description').val(desc);
                 $row.find('.item-price').val(data.purchase.purchase_price).trigger('input');
             } else {
-                $row.find('.imei-error').show();
+                $row.find('.imei-error').text('IMEI Not Found').show();
                 $row.find('.item-id').val('');
             }
         },
         error: function() {
-            $row.find('.imei-error').show();
+            $row.find('.imei-error').text('IMEI Not Found').show();
         }
     });
 }
