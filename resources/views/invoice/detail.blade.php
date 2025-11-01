@@ -407,18 +407,27 @@
                         </tr>
                     </thead>
                     <tbody>
+                        @forelse($invoice->items as $index => $item)
                         <tr>
-                            <td>1</td>
+                            <td>{{ $index + 1 }}</td>
                             <td class="description">
-                                {{ $invoice->item_description }}
-                                @if($invoice->purchase && $invoice->purchase->imei)
-                                    <div class="imei">IMEI {{ $invoice->purchase->imei }}</div>
+                                @php
+                                    $itemDescription = str_replace('IMEI: ' . $item->purchase->imei, '', $item->item_description);
+                                @endphp
+                                {{ $itemDescription }}
+                                @if($item->purchase && $item->purchase->imei)
+                                    <div class="imei">IMEI: {{ $item->purchase->imei }}</div>
                                 @endif
                             </td>
-                            <td>{{ $invoice->quantity ?? 1 }} Unit</td>
-                            <td>₹{{ number_format($invoice->total_amount, 2) }}</td>
-                            <td>₹{{ number_format($invoice->net_amount, 2) }}</td>
+                            <td>{{ $item->quantity ?? 1 }} Unit</td>
+                            <td>₹{{ number_format($item->unit_price, 2) }}</td>
+                            <td>₹{{ number_format($item->total_amount, 2) }}</td>
                         </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="text-center">No items found</td>
+                        </tr>
+                        @endforelse
                     </tbody>
                 </table>
 
@@ -468,6 +477,12 @@
                         <div class="payment-label">Total Amount In Words:</div>
                         <div>{{ $amountInWords }}</div>
                     </div>
+                    @if($invoice->declaration)
+                        <div class="payment-row">
+                            <div class="payment-label">Additional Note:</div>
+                            <div>{{ $invoice->declaration ?? 'N/A' }}</div>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Terms & Conditions with Signature Section -->

@@ -22,4 +22,23 @@ class Invoice extends Model
     {
         return $this->belongsTo(Purchase::class, 'item_id', 'id');
     }
+
+    /**
+     * Get all items for this invoice.
+     */
+    public function items()
+    {
+        return $this->hasMany(InvoiceItem::class);
+    }
+
+    public function invoiceItems()
+    {
+        return $this->hasMany(InvoiceItem::class);
+    }
+
+    /** Hide deleted rows everywhere you use ->notDeleted() */
+    public function scopeNotDeleted($q)
+    {
+        return $q->where('deleted', 0);
+    }
 }

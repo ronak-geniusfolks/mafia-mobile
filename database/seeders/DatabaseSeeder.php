@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PaymentMethodsSeeder::class,
             SuperAdminSeeder::class,
+            AddInvoiceDeletePermissionSeeder::class,
         ]);
     }
 }

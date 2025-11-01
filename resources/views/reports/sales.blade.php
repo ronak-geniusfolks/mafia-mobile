@@ -75,8 +75,7 @@
             <div class="card border-0 shadow-sm card-summary">
                 <div class="card-body text-center py-3">
                     <p class="text-muted text-uppercase mb-1">Net Profit - {{ $timePeriod }}</p>
-                    <h5 class="fw-semibold text-warning mb-0">
-                        {{ number_format($totalProfitAmount - $totalExpenseAmount, 2, '.', '') }} ₹</h5>
+                    <h5 class="fw-semibold text-warning mb-0">{{ number_format($totalProfitAmount - $totalExpenseAmount, 2) }} ₹</h5>
                 </div>
             </div>
         </div>
@@ -156,7 +155,7 @@
                                         <td>
                                             <ul class="list-unstyled mb-0">
                                                 @if($invoice->customer_name)
-                                                    <li><b>Name:</b> {{ ucfirst($invoice->customer_name) }}</li>
+                                                    <li><b>Name:</b> {{ ucwords($invoice->customer_name) }}</li>
                                                 @endif
                                                 @if($invoice->customer_no)
                                                     <li><b>Contact:</b> {{ ucfirst($invoice->customer_no) }}</li>

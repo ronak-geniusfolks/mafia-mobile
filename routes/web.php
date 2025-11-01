@@ -42,45 +42,11 @@ Route::middleware('auth')->group(function () {
 });
 
 // Dashboard
-Route::middleware(['auth', 'permission:dashboard.view'])->get('/dashboard', function (Request $request) {
-    $today        = Carbon::today();
-    $yesterday    = Carbon::yesterday();
-    $startOfMonth = Carbon::now()->startOfMonth();
-    $endOfMonth   = Carbon::now();
-    $sevenDaysAgo = Carbon::now()->subDays(7);
+use App\Http\Controllers\DashboardController;
 
-    $stocksInHand      = Purchase::where('is_sold', 0)->count();
-    $totalSales        = Invoice::whereDate('invoice_date', $today)->sum('net_amount');
-    $currentMonthSales = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])->where('deleted', 0)->sum('net_amount');
-
-    $filter   = $request->input('filtertime');
-    $fromdate = Carbon::parse($request->input('fromdate'))->startOfDay();
-    $todate   = Carbon::parse($request->input('todate'))->startOfDay();
-
-    $invoices = match ($filter) {
-        'yesterday' => Invoice::whereDate('invoice_date', $yesterday),
-        'lastweek' => Invoice::whereBetween('invoice_date', [$sevenDaysAgo, $today]),
-        'month'    => Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth]),
-        'custom'   => Invoice::whereBetween('invoice_date', [$fromdate, $todate]),
-        default    => Invoice::whereDate('invoice_date', $today),
-    };
-
-    $invoices                    = $invoices->where('deleted', 0)->orderBy('created_at', 'desc')->paginate(10);
-    $numberOfProductsSoldInMonth = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])->where('deleted', 0)->count();
-
-    return view('dashboard', [
-        'stocksInHand'                => $stocksInHand,
-        'totalSales'                  => number_format($totalSales, 0, '.', ','),
-        'currentMonthSales'           => number_format($currentMonthSales, 0, '.', ','),
-        'currentMonth'                => Carbon::now()->format('F'),
-        'numberOfProductsSoldInMonth' => $numberOfProductsSoldInMonth,
-        'todaysSales'                 => $invoices,
-        'filtertime'                  => $filter,
-        'fromdate'                    => $fromdate->format('Y-m-d'),
-        'todate'                      => $todate->format('Y-m-d'),
-        'totalRecords'                => $invoices->total(),
-    ]);
-})->name('dashboard');
+Route::middleware(['auth', 'permission:dashboard.view'])
+    ->get('/dashboard', [DashboardController::class, 'index'])
+    ->name('dashboard');
 
 // Profile Routes
 Route::middleware(['auth'])->group(function () {
@@ -129,6 +95,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/invoice/print/{id}', [InvoiceController::class, 'printInvoice'])->middleware('permission:invoices.print')->name('print-invoice');
     Route::get('/admin/invoice/edit/{id}', [InvoiceController::class, 'editInvoice'])->middleware('permission:invoices.edit')->name('invoice-edit');
     Route::post('/admin/invoice/update/{id}', [InvoiceController::class, 'updateInvoice'])->middleware('permission:invoices.edit')->name('invoice-update');
+    Route::post('/admin/invoice/delete/{id}', [InvoiceController::class, 'deleteInvoice'])->middleware('permission:invoices.delete')->name('invoice-delete');
 });
 
 // Reports
