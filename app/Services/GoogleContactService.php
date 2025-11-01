@@ -14,6 +14,13 @@ class GoogleContactService
     {
     }
 
+    private function getTokenPath(): string
+    {
+        $email = env('GOOGLE_GMAIL_ID', 'default');
+        $safeEmail = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $email));
+        return "google_access_token_{$safeEmail}.json";
+    }
+
     public function getAuthUrl(string $state = ''): string
     {
         if ($state !== '' && $state !== '0') {
@@ -28,7 +35,7 @@ class GoogleContactService
             $this->client->authenticate($code);
             $accessToken = $this->client->getAccessToken();
             if (! empty($accessToken['refresh_token'])) {
-                Storage::put('google_access_token.json', json_encode($accessToken));
+                Storage::put($this->getTokenPath(), json_encode($accessToken));
             }
             return ['success' => true];
         } catch (\Exception $e) {
@@ -38,7 +45,7 @@ class GoogleContactService
 
     public function syncContact(Request $request): array | RedirectResponse
     {
-        if (! Storage::exists('google_access_token.json')) {
+        if (! Storage::exists($this->getTokenPath())) {
             $state = base64_encode(json_encode([
                 'customer_name' => $request->customer_name,
                 'customer_no'   => $request->customer_no,
@@ -47,7 +54,7 @@ class GoogleContactService
             return ['success' => false, 'redirect' => $this->getAuthUrl($state)];
         }
 
-        $accessToken = json_decode(Storage::get('google_access_token.json'), true);
+        $accessToken = json_decode(Storage::get($this->getTokenPath()), true);
         if (! $accessToken) {
             return ['success' => false, 'redirect' => route('google.redirect')];
         }
@@ -66,9 +73,9 @@ class GoogleContactService
                 if (empty($newAccessToken['refresh_token']) && isset($accessToken['refresh_token'])) {
                     $newAccessToken['refresh_token'] = $accessToken['refresh_token'];
                 }
-                Storage::put('google_access_token.json', json_encode($newAccessToken));
+                Storage::put($this->getTokenPath(), json_encode($newAccessToken));
             } catch (\Exception) {
-                Storage::delete('google_access_token.json');
+                Storage::delete($this->getTokenPath());
                 return ['success' => false, 'redirect' => route('google.redirect'), 'error' => 'Token refresh failed'];
             }
         }
@@ -110,7 +117,7 @@ class GoogleContactService
             return ['success' => true, 'message' => 'Contact synced successfully!', 'contact' => $newContact->getResourceName()];
         } catch (\Exception $e) {
             if (str_contains($e->getMessage(), 'unauthorized') || str_contains($e->getMessage(), 'invalid_grant')) {
-                Storage::delete('google_access_token.json');
+                Storage::delete($this->getTokenPath());
                 return ['success' => false, 'redirect' => route('google.redirect')];
             }
             return ['success' => false, 'error' => 'Sync failed: ' . $e->getMessage()];
@@ -135,11 +142,11 @@ class GoogleContactService
     {
         $contacts = [];
 
-        if (! Storage::exists('google_access_token.json')) {
+        if (! Storage::exists($this->getTokenPath())) {
             return $contacts;
         }
 
-        $accessToken = json_decode(Storage::get('google_access_token.json'), true);
+        $accessToken = json_decode(Storage::get($this->getTokenPath()), true);
         if (! $accessToken) {
             return $contacts;
         }
@@ -155,10 +162,10 @@ class GoogleContactService
                     if (empty($newAccessToken['refresh_token']) && isset($accessToken['refresh_token'])) {
                         $newAccessToken['refresh_token'] = $accessToken['refresh_token'];
                     }
-                    Storage::put('google_access_token.json', json_encode($newAccessToken));
+                    Storage::put($this->getTokenPath(), json_encode($newAccessToken));
                 }
             } catch (\Exception) {
-                Storage::delete('google_access_token.json');
+                Storage::delete($this->getTokenPath());
                 return $contacts;
             }
         }

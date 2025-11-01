@@ -19,6 +19,7 @@ return new class extends Migration
             $table->integer('quantity')->default(1);
             $table->decimal('unit_price', 10, 2)->default(0);
             $table->decimal('total_amount', 10, 2)->default(0);
+            $table->date('warranty_expiry_date')->nullable();
             $table->decimal('profit', 10, 2)->default(0);
             $table->tinyInteger('deleted')->default(0);
             $table->timestamps();
