@@ -168,6 +168,14 @@
                     </li>
                 @endcan
 
+                <!-- Dealers -->
+                <li class="{{ request()->routeIs(['dealers.*']) ? 'menuitem-active' : '' }}">
+                    <a href="{{ route('dealers.index') }}">
+                        <i class="fa fa-store"></i>
+                        <span>Dealers</span>
+                    </a>
+                </li>
+
                 <!-- Admin Management -->
                 @canany(['roles.view', 'roles.create', 'users.view', 'users.create'])
                     <li class="{{ request()->routeIs(['roles.*', 'users.*']) ? 'menuitem-active' : '' }}">

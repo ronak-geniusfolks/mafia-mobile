@@ -13,7 +13,7 @@ use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
-use App\Http\Controllers\{AdminController, ExpenseController, GoogleContactController, InvoiceController, ProfileController, PurchaseController, ReportController, RoleController, SaleController, TransactionController, UserController};
+use App\Http\Controllers\{AdminController, DealerController, ExpenseController, GoogleContactController, InvoiceController, ProfileController, PurchaseController, ReportController, RoleController, SaleController, TransactionController, UserController};
 
 // Auth Routes
 Route::get('/', fn() => view('auth.login'));
@@ -173,4 +173,13 @@ Route::middleware(['auth'])->group(function () {
 
     Route::resource('users', UserController::class)->except(['show'])->middleware('permission:users.view');
     Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.create')->name('users.store');
+});
+
+// Dealers
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dealers', [DealerController::class, 'index'])->name('dealers.index');
+    Route::post('/dealers', [DealerController::class, 'store'])->name('dealers.store');
+    Route::get('/dealers/{id}/edit', [DealerController::class, 'edit'])->name('dealers.edit');
+    Route::put('/dealers/{id}', [DealerController::class, 'update'])->name('dealers.update');
+    Route::delete('/dealers/{id}', [DealerController::class, 'destroy'])->name('dealers.destroy');
 });
