@@ -394,7 +394,7 @@
                         if (data.purchase.imei) desc += `IMEI: ${data.purchase.imei}\n`;
                         $row.find('.item-description').val(desc);
                         $row.find('.item-imei').val(data.purchase.imei).trigger('input');
-                        $row.find('.item-warranty').val(new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0].split('-').reverse().join('/'));
+                        $row.find('.item-warranty').val(new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0].split('-').reverse().join('/'));
                     } else {
                         $row.find('.imei-error').text(data.error).show();
                         setTimeout(() => {
