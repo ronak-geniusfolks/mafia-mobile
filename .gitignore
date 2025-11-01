@@ -24,3 +24,5 @@ Homestead.yaml
 npm-debug.log
 Thumbs.db
 yarn-error.log
+storage/client_secret_prod.json
+storage/client_secret_prod.json

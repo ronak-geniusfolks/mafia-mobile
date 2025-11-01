@@ -194,7 +194,6 @@ td { color: #000; font-size:15px; }
                                             <td style="width:15%; color:#000; text-align:right; padding-right:10px; border-top: 1px solid;"><h4 style="color:#000">₹{{ $invoice->net_amount }}</h4></td>
                                         </tr>
                                         @endif
-
                                     </tbody>
                                 </table>
                             </td>
