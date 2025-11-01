@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Purchase;
+use App\Models\InvoiceItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 
@@ -24,7 +25,9 @@ class ReportController extends Controller
                 ->where('deleted', 0)
                 ->orderBy('created_at', 'desc')->paginate(10);
             $totalSalesAmount = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])->where('deleted', 0)->sum('net_amount');
-            $totalProfitAmount = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])->where('deleted', 0)->sum('profit');
+            $totalProfitAmount = InvoiceItem::whereHas('invoice', function ($query) use ($startOfMonth, $endOfMonth) {
+                $query->whereBetween('invoice_date', [$startOfMonth, $endOfMonth]);
+            })->where('deleted', 0)->sum('profit');
             $totalExpenseAmount = Expense::whereBetween('entrydate', [$startOfMonth, $endOfMonth])->where('deleted', 0)->sum('amount');
             $timePeriod = Carbon::now()->format('F');
         } elseif ($period == 'lastmonth') {
@@ -34,7 +37,9 @@ class ReportController extends Controller
                 ->where('deleted', 0)
                 ->orderBy('created_at', 'desc')->paginate(10);
             $totalSalesAmount = Invoice::whereBetween('invoice_date', [$lastMonthStart, $lastMonthEnd])->where('deleted', 0)->sum('net_amount');
-            $totalProfitAmount = Invoice::whereBetween('invoice_date', [$lastMonthStart, $lastMonthEnd])->where('deleted', 0)->sum('profit');
+            $totalProfitAmount = InvoiceItem::whereHas('invoice', function ($query) use ($lastMonthStart, $lastMonthEnd) {
+                $query->whereBetween('invoice_date', [$lastMonthStart, $lastMonthEnd]);
+            })->where('deleted', 0)->sum('profit');
             $totalExpenseAmount = Expense::whereBetween('entrydate', [$lastMonthStart, $lastMonthEnd])->where('deleted', 0)->sum('amount');
             $timePeriod = Carbon::now()->subMonth()->format('F');
         } elseif ($period == 'thisyear') {
@@ -44,7 +49,9 @@ class ReportController extends Controller
                 ->where('deleted', 0)
                 ->orderBy('created_at', 'desc')->paginate(10);
             $totalSalesAmount = Invoice::whereBetween('invoice_date', [$startOfYear, $endOfYear])->where('deleted', 0)->sum('net_amount');
-            $totalProfitAmount = Invoice::whereBetween('invoice_date', [$startOfYear, $endOfYear])->where('deleted', 0)->sum('profit');
+            $totalProfitAmount = InvoiceItem::whereHas('invoice', function ($query) use ($startOfYear, $endOfYear) {
+                $query->whereBetween('invoice_date', [$startOfYear, $endOfYear]);
+            })->where('deleted', 0)->sum('profit');
             $totalExpenseAmount = Expense::whereBetween('entrydate', [$startOfYear, $endOfYear])->where('deleted', 0)->sum('amount');
             $timePeriod = Carbon::now()->format('Y');
         } elseif ($period == 'lastyear') {
@@ -54,7 +61,9 @@ class ReportController extends Controller
                 ->where('deleted', 0)
                 ->orderBy('created_at', 'asc')->paginate(15);
             $totalSalesAmount = Invoice::whereBetween('invoice_date', [$startOfLastYear, $endOfLastYear])->where('deleted', 0)->sum('net_amount');
-            $totalProfitAmount = Invoice::whereBetween('invoice_date', [$startOfLastYear, $endOfLastYear])->where('deleted', 0)->sum('profit');
+            $totalProfitAmount = InvoiceItem::whereHas('invoice', function ($query) use ($startOfLastYear, $endOfLastYear) {
+                $query->whereBetween('invoice_date', [$startOfLastYear, $endOfLastYear]);
+            })->where('deleted', 0)->sum('profit');
             $totalExpenseAmount = Expense::whereBetween('entrydate', [$startOfLastYear, $endOfLastYear])->where('deleted', 0)->sum('amount');
             $timePeriod = Carbon::now()->subYear()->format('Y');
         } elseif ($period == 'custom') {
@@ -62,7 +71,9 @@ class ReportController extends Controller
             $toDate = $request->input('todate');
             $allSales = Invoice::whereBetween('invoice_date', [$fromDate, $toDate])->where('deleted', 0)->orderBy('created_at', 'desc')->paginate(15);
             $totalSalesAmount = Invoice::whereBetween('invoice_date', [$fromDate, $toDate])->where('deleted', 0)->sum('net_amount');
-            $totalProfitAmount = Invoice::whereBetween('invoice_date', [$fromDate, $toDate])->where('deleted', 0)->sum('profit');
+            $totalProfitAmount = InvoiceItem::whereHas('invoice', function ($query) use ($fromDate, $toDate) {
+                $query->whereBetween('invoice_date', [$fromDate, $toDate]);
+            })->where('deleted', 0)->sum('profit');
             $totalExpenseAmount = Expense::whereBetween('entrydate', [$fromDate, $toDate])->where('deleted', 0)->sum('amount');
             $timePeriod = Carbon::now()->format('F');
         } elseif ($period == 'alls') {
@@ -70,8 +81,9 @@ class ReportController extends Controller
                 ->orderBy('created_at', 'desc')->paginate(10);
             $totalSalesAmount = Invoice::whereBetween('invoice_date', [Carbon::now()->startOfMonth(), Carbon::now()])
                 ->where('deleted', 0)->sum('net_amount');
-            $totalProfitAmount = Invoice::whereBetween('invoice_date', [Carbon::now()->startOfMonth(), Carbon::now()])
-                ->where('deleted', 0)->sum('profit');
+            $totalProfitAmount = InvoiceItem::whereHas('invoice', function ($query) {
+                $query->whereBetween('invoice_date', [Carbon::now()->startOfMonth(), Carbon::now()]);
+            })->where('deleted', 0)->sum('profit');
             $totalExpenseAmount = Expense::whereBetween('entrydate', [Carbon::now()->startOfMonth(), Carbon::now()])->where('deleted', 0)->sum('amount');
             $timePeriod = Carbon::now()->format('F');
         } else {
@@ -79,8 +91,9 @@ class ReportController extends Controller
                 ->orderBy('created_at', 'desc')->paginate(10);
             $totalSalesAmount = Invoice::whereBetween('invoice_date', [Carbon::now()->startOfMonth(), Carbon::now()])
                 ->where('deleted', 0)->sum('net_amount');
-            $totalProfitAmount = Invoice::whereBetween('invoice_date', [Carbon::now()->startOfMonth(), Carbon::now()])
-                ->where('deleted', 0)->sum('profit');
+            $totalProfitAmount = InvoiceItem::whereHas('invoice', function ($query) {
+                $query->whereBetween('invoice_date', [Carbon::now()->startOfMonth(), Carbon::now()]);
+            })->where('deleted', 0)->sum('profit');
             $totalExpenseAmount = Expense::whereBetween('entrydate', [Carbon::now()->startOfMonth(), Carbon::now()])->where('deleted', 0)->sum('amount');
             $timePeriod = Carbon::now()->format('F');
         }
@@ -322,8 +335,6 @@ class ReportController extends Controller
 
     public function exportcustomers()
     {
-        // $startOfMonth = Carbon::now()->startOfMonth();
-        // $endOfMonth = Carbon::now();
         $uniqueCustomers = Invoice::where('deleted', 0)
             ->select('customer_name', 'customer_no')
             ->distinct()

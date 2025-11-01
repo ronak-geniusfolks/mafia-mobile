@@ -64,7 +64,7 @@ class InvoiceController extends Controller
                 // If conversion fails, keep original value for validation to handle
             }
         }
-        
+
         if ($request->warranty_expiry_date) {
             try {
                 $convertedDate = Carbon::createFromFormat('d/m/Y', $request->warranty_expiry_date)->format('Y-m-d');
@@ -97,7 +97,6 @@ class InvoiceController extends Controller
                 'customer_no'          => $request->customer_no,
                 'customer_address'     => $request->customer_address ?? null,
                 'invoice_date'         => $request->invoice_date,
-                'warranty_expiry_date' => $request->warranty_expiry_date ?? null,
                 'invoice_no'           => $request->invoice_no,
                 'total_amount'         => $request->total_amount,
                 'net_amount'           => $request->net_amount,
@@ -120,23 +119,23 @@ class InvoiceController extends Controller
             $totalProfit = 0;
             foreach ($request->items as $item) {
                 $purchase = Purchase::findOrFail($item['item_id']);
-                
+
                 // Check if item is already sold
                 if ($purchase->is_sold) {
                     DB::rollBack();
                     return back()->withErrors(['error' => 'Item ' . $purchase->imei . ' is already sold.'])->withInput();
                 }
-                
+
                 $unitPrice = $item['unit_price'];
                 $totalAmount = $unitPrice * $item['quantity'];
                 $profit = ($unitPrice - $purchase->purchase_price) * $item['quantity'];
-                
+
                 // Convert warranty date if provided
                 $warrantyDate = null;
                 if (!empty($item['warranty_expiry_date'])) {
                     $warrantyDate = Carbon::createFromFormat('d/m/Y', $item['warranty_expiry_date'])->format('Y-m-d');
                 }
-                
+
                 // Create invoice item
                 InvoiceItem::create([
                     'invoice_id'         => $invoice->id,
@@ -148,9 +147,9 @@ class InvoiceController extends Controller
                     'warranty_expiry_date' => $warrantyDate,
                     'profit'             => $profit,
                 ]);
-                
+
                 $totalProfit += $profit;
-                
+
                 // Mark purchase as sold
                 $purchase->update([
                     'is_sold'   => 1,
@@ -164,7 +163,7 @@ class InvoiceController extends Controller
             if ($request->customer_no_sync == 'on') {
                 $request->merge(['invoice_id' => $invoice->id]);
                 $result = $this->googleContactService->syncContact($request);
-                
+
                 if (!$result['success']) {
                     if (isset($result['redirect'])) {
                         return redirect()->to($result['redirect']);
@@ -174,7 +173,7 @@ class InvoiceController extends Controller
             }
 
             return redirect()->route('print-invoice', $invoice->id);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'An error occurred: ' . $e->getMessage()])->withInput();
@@ -203,11 +202,13 @@ class InvoiceController extends Controller
         $purchase = Purchase::where('imei', 'LIKE', "%{$imei}%")
             ->where('is_sold', 0)
             ->first();
-        $count = $purchase ? 1 : 0;
-
+        if (!$purchase) {
+            return response()->json([
+                'error' => 'IMEI Not in stock',
+            ]);
+        }
         return response()->json([
             'purchase' => $purchase,
-            'count'    => $count,
         ]);
     }
 
@@ -222,7 +223,7 @@ class InvoiceController extends Controller
     public function updateInvoice(Request $request, $id)
     {
         $invoice = Invoice::with('items.purchase')->findOrFail($id);
-        
+
         // Convert date format from dd/mm/yyyy to Y-m-d using Carbon
         if ($request->invoice_date) {
             try {
@@ -232,7 +233,7 @@ class InvoiceController extends Controller
                 // If conversion fails, keep original value for validation to handle
             }
         }
-        
+
         // Validate request
         $request->validate([
             'items'             => 'required|array|min:1',
@@ -259,10 +260,10 @@ class InvoiceController extends Controller
                     ]);
                 }
             }
-            
+
             // Delete old invoice items
             $invoice->items()->delete();
-            
+
             // Update invoice details
             $invoice->update([
                 'customer_name'        => $request->customer_name,
@@ -289,23 +290,23 @@ class InvoiceController extends Controller
             $totalProfit = 0;
             foreach ($request->items as $item) {
                 $purchase = Purchase::findOrFail($item['item_id']);
-                
+
                 // Check if item is already sold
                 if ($purchase->is_sold) {
                     DB::rollBack();
                     return back()->withErrors(['error' => 'Item ' . $purchase->imei . ' is already sold.'])->withInput();
                 }
-                
+
                 $unitPrice = $item['unit_price'];
                 $totalAmount = $unitPrice * $item['quantity'];
                 $profit = ($unitPrice - $purchase->purchase_price) * $item['quantity'];
-                
+
                 // Convert warranty date if provided
                 $warrantyDate = null;
                 if (!empty($item['warranty_expiry_date'])) {
                     $warrantyDate = Carbon::createFromFormat('d/m/Y', $item['warranty_expiry_date'])->format('Y-m-d');
                 }
-                
+
                 // Create invoice item
                 InvoiceItem::create([
                     'invoice_id'         => $invoice->id,
@@ -317,20 +318,20 @@ class InvoiceController extends Controller
                     'warranty_expiry_date' => $warrantyDate,
                     'profit'             => $profit,
                 ]);
-                
+
                 $totalProfit += $profit;
-                
+
                 // Mark purchase as sold
                 $purchase->update([
                     'is_sold'   => 1,
                     'sell_date' => $request->invoice_date,
                 ]);
             }
-            
+
             DB::commit();
 
             return redirect()->route('allinvoices')->withStatus('Invoice Updated Successfully..');
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'An error occurred: ' . $e->getMessage()])->withInput();
@@ -342,7 +343,7 @@ class InvoiceController extends Controller
         DB::beginTransaction();
         try {
             $invoice = Invoice::with('items.purchase')->findOrFail($id);
-            
+
             // Mark the purchases as unsold so they can be sold again
             foreach ($invoice->items as $item) {
                 if ($item->purchase) {
@@ -352,15 +353,15 @@ class InvoiceController extends Controller
                     ]);
                 }
             }
-            
+
             // Soft delete invoice items
             $invoice->items()->update(['deleted' => 1]);
-            
+
             // Soft delete the invoice
             $invoice->update(['deleted' => 1]);
-            
+
             DB::commit();
-            
+
             return redirect()->route('allinvoices')->withStatus('Invoice Deleted Successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
