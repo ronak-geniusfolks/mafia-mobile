@@ -359,7 +359,7 @@
     <div class="page-container">
         <!-- Add 200px top margin for company stamp paper - only when printing -->
         <div class="print-top-margin"></div>
-        
+
         <div class="invoice-box">
             <div class="invoice-body">
                 <!-- Bill of Supply Section -->
@@ -429,9 +429,12 @@
                         <tr>
                             <td>{{ $index + 1 }}</td>
                             <td class="description">
-                                {{ $item->item_description }}
+                                @php
+                                    $itemDescription = str_replace('IMEI: ' . $item->purchase->imei, '', $item->item_description);
+                                @endphp
+                                {{ $itemDescription }}
                                 @if($item->purchase && $item->purchase->imei)
-                                    <div class="imei">IMEI {{ $item->purchase->imei }}</div>
+                                    <div class="imei">IMEI: {{ $item->purchase->imei }}</div>
                                 @endif
                             </td>
                             <td>{{ $item->quantity ?? 1 }} Unit</td>
@@ -500,6 +503,12 @@
                         <div class="payment-label">Total Amount In Words:</div>
                         <div>{{ $amountInWords }}</div>
                     </div>
+                    @if($invoice->declaration)
+                        <div class="payment-row">
+                            <div class="payment-label">Additional Note:</div>
+                            <div>{{ $invoice->declaration ?? 'N/A' }}</div>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Terms & Conditions with Signature Section -->

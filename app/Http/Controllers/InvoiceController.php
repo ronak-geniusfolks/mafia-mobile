@@ -97,7 +97,6 @@ class InvoiceController extends Controller
                 'customer_no'          => $request->customer_no,
                 'customer_address'     => $request->customer_address ?? null,
                 'invoice_date'         => $request->invoice_date,
-                'warranty_expiry_date' => $request->warranty_expiry_date ?? null,
                 'invoice_no'           => $request->invoice_no,
                 'total_amount'         => $request->total_amount,
                 'net_amount'           => $request->net_amount,
@@ -203,11 +202,13 @@ class InvoiceController extends Controller
         $purchase = Purchase::where('imei', 'LIKE', "%{$imei}%")
             ->where('is_sold', 0)
             ->first();
-        $count = $purchase ? 1 : 0;
-
+        if (!$purchase) {
+            return response()->json([
+                'error' => 'IMEI Not in stock',
+            ]);
+        }
         return response()->json([
             'purchase' => $purchase,
-            'count'    => $count,
         ]);
     }
 
