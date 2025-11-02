@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             PaymentMethodsSeeder::class,
             SuperAdminSeeder::class,
             AddInvoiceDeletePermissionSeeder::class,
+            AddBillPermissionsSeeder::class,
         ]);
     }
 }

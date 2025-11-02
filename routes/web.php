@@ -13,7 +13,7 @@ use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
-use App\Http\Controllers\{AdminController, DealerController, ExpenseController, GoogleContactController, InvoiceController, ProfileController, PurchaseController, ReportController, RoleController, SaleController, TransactionController, UserController};
+use App\Http\Controllers\{AdminController, BillController, DealerController, DealerPaymentController, ExpenseController, GoogleContactController, InvoiceController, ProfileController, PurchaseController, ReportController, RoleController, SaleController, TransactionController, UserController};
 
 // Auth Routes
 Route::get('/', fn() => view('auth.login'));
@@ -149,4 +149,26 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dealers/{id}/edit', [DealerController::class, 'edit'])->name('dealers.edit');
     Route::put('/dealers/{id}', [DealerController::class, 'update'])->name('dealers.update');
     Route::delete('/dealers/{id}', [DealerController::class, 'destroy'])->name('dealers.destroy');
+});
+
+// Bills
+Route::middleware(['auth'])->group(function () {
+    Route::get('/admin/bills', [BillController::class, 'index'])->middleware('permission:bills.view')->name('allbills');
+    Route::get('/admin/bill/add', [BillController::class, 'newBill'])->middleware('permission:bills.create')->name('newbill');
+    Route::post('/admin/bill/create-bill', [BillController::class, 'createBill'])->middleware('permission:bills.create')->name('create-bill');
+    Route::get('/admin/bill/{id}', [BillController::class, 'billDetail'])->middleware('permission:bills.detail')->name('bill-detail');
+    Route::get('/admin/bill/print/{id}', [BillController::class, 'printBill'])->middleware('permission:bills.print')->name('print-bill');
+    Route::get('/admin/bill/edit/{id}', [BillController::class, 'editBill'])->middleware('permission:bills.edit')->name('bill-edit');
+    Route::post('/admin/bill/update/{id}', [BillController::class, 'updateBill'])->middleware('permission:bills.edit')->name('bill-update');
+    Route::post('/admin/bill/delete/{id}', [BillController::class, 'deleteBill'])->middleware('permission:bills.delete')->name('bill-delete');
+    Route::get('/admin/bill/fetch-model/{imei}', [BillController::class, 'fetchModelData'])->middleware('permission:bills.create')->name('fetch-bill-model');
+    Route::get('/admin/bill/fetch-dealer/{id}', [BillController::class, 'fetchDealerData'])->middleware('permission:bills.create')->name('fetch-bill-dealer');
+});
+
+// Dealer Payments
+Route::middleware(['auth'])->prefix('dealer-payments')->name('dealer-payments.')->group(function () {
+    Route::get('/', [DealerPaymentController::class, 'index'])->middleware('permission:dealer-payments.view')->name('index');
+    Route::get('/data', [DealerPaymentController::class, 'getDealersData'])->middleware('permission:dealer-payments.view')->name('data');
+    Route::get('/{dealerId}/bills', [DealerPaymentController::class, 'getDealerBills'])->middleware('permission:dealer-payments.view')->name('bills');
+    Route::post('/store', [DealerPaymentController::class, 'storePayment'])->middleware('permission:dealer-payments.create')->name('store');
 });

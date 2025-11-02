@@ -168,12 +168,27 @@
                     </li>
                 @endcan
 
-                <!-- Dealers -->
-                <li class="{{ request()->routeIs(['dealers.*']) ? 'menuitem-active' : '' }}">
-                    <a href="{{ route('dealers.index') }}">
+                <!-- Dealer -->
+                <li class="{{ request()->routeIs(['dealers.*', 'allbills', 'newbill', 'bill-detail', 'print-bill', 'bill-edit', 'dealer-payments.*']) ? 'menuitem-active' : '' }}">
+                    <a data-toggle="collapse" href="#dealerMenu" role="button" aria-expanded="{{ request()->routeIs(['dealers.*', 'allbills', 'newbill', 'bill-detail', 'print-bill', 'bill-edit', 'dealer-payments.*']) ? 'true' : 'false' }}"
+                        aria-controls="dealerMenu">
                         <i class="fa fa-store"></i>
-                        <span>Dealers</span>
+                        <span>Dealer</span>
+                        <span class="menu-arrow"></span>
                     </a>
+                    <div class="collapse {{ request()->routeIs(['dealers.*', 'allbills', 'newbill', 'bill-detail', 'print-bill', 'bill-edit', 'dealer-payments.*']) ? 'show' : '' }}" id="dealerMenu">
+                        <ul class="nav-second-level">
+                            <li><a href="{{ route('dealers.index') }}" class="{{ request()->routeIs('dealers.*') ? 'active' : '' }}">Dealers</a></li>
+                            @canany(['bills.view', 'bills.create'])
+                            @can('bills.view')
+                            <li><a href="{{ route('allbills') }}" class="{{ request()->routeIs(['allbills', 'bill-detail', 'print-bill', 'bill-edit']) ? 'active' : '' }}">Bills</a></li> @endcan
+                            @can('bills.create')
+                            <li><a href="{{ route('newbill') }}" class="{{ request()->routeIs('newbill') ? 'active' : '' }}">New Bill</a></li> @endcan
+                            @endcanany
+                            @can('dealer-payments.view')
+                            <li><a href="{{ route('dealer-payments.index') }}" class="{{ request()->routeIs('dealer-payments.*') ? 'active' : '' }}">Payments</a></li> @endcan
+                        </ul>
+                    </div>
                 </li>
 
                 <!-- Admin Management -->
