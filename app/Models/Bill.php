@@ -36,11 +36,6 @@ class Bill extends Model
         return $this->hasMany(BillItem::class);
     }
 
-    public function billItems()
-    {
-        return $this->hasMany(BillItem::class);
-    }
-
     /**
      * Get all payments for this bill.
      */
@@ -61,14 +56,33 @@ class Bill extends Model
     /**
      * Check if bill is fully paid.
      */
-    public function isFullyPaid()
+    public function isFullyPaid(): bool
     {
         return $this->remaining_amount <= 0;
     }
 
-    /** Hide deleted rows everywhere you use ->notDeleted() */
-    public function scopeNotDeleted($q)
+    /**
+     * Scope: Only credit bills.
+     */
+    public function scopeCredit($query)
     {
-        return $q->withoutTrashed();
+        return $query->where('payment_type', 'credit');
+    }
+
+    /**
+     * Scope: Only pending bills (credit bills with remaining amount).
+     */
+    public function scopePending($query)
+    {
+        return $query->credit()
+            ->whereRaw('(credit_amount - COALESCE(paid_amount, 0)) > 0');
+    }
+
+    /**
+     * Scope: Hide deleted rows.
+     */
+    public function scopeNotDeleted($query)
+    {
+        return $query->withoutTrashed();
     }
 }

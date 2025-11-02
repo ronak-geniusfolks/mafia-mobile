@@ -11,15 +11,12 @@ use Yajra\DataTables\Facades\DataTables;
 class DealerController extends Controller
 {
     /**
-     * Display a listing of dealers
-     *
-     * @param Request $request
-     * @return \Illuminate\View\View|\Illuminate\Http\JsonResponse
+     * Display a listing of dealers.
      */
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $data = Dealer::getAllDealers();
+            $data = Dealer::query();
 
             return DataTables::of($data)
                 ->addIndexColumn()
@@ -31,23 +28,17 @@ class DealerController extends Controller
     }
 
     /**
-     * Store a newly created dealer
-     *
-     * @param StoreDealerRequest $request
-     * @return \Illuminate\Http\JsonResponse
+     * Store a newly created dealer.
      */
     public function store(StoreDealerRequest $request)
     {
         try {
-            $validated = $request->validated();
-
-            $dealer = Dealer::createDealer($validated);
+            $dealer = Dealer::create($request->validated());
 
             return response()->json([
                 'status'  => true,
                 'message' => 'Dealer created successfully!',
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => false,
@@ -57,23 +48,18 @@ class DealerController extends Controller
     }
 
     /**
-     * Update the specified dealer
-     *
-     * @param UpdateDealerRequest $request
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * Update the specified dealer.
      */
     public function update(UpdateDealerRequest $request, $id)
     {
         try {
-            $validated = $request->validated();
-            $dealer = Dealer::updateDealer($id, $validated);
+            $dealer = Dealer::findOrFail($id);
+            $dealer->update($request->validated());
 
             return response()->json([
                 'status'  => true,
                 'message' => 'Dealer updated successfully!',
             ], 200);
-
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'status'  => false,
@@ -88,15 +74,12 @@ class DealerController extends Controller
     }
 
     /**
-     * Show the form for editing the specified dealer
-     *
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * Show the form for editing the specified dealer.
      */
     public function edit($id)
     {
         try {
-            $dealer = Dealer::getDealerByIdOrFail($id);
+            $dealer = Dealer::findOrFail($id);
 
             return response()->json([
                 'status'  => true,
@@ -119,15 +102,13 @@ class DealerController extends Controller
     }
 
     /**
-     * Remove the specified dealer from storage
-     *
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * Remove the specified dealer from storage.
      */
     public function destroy($id)
     {
         try {
-            Dealer::deleteDealer($id);
+            $dealer = Dealer::findOrFail($id);
+            $dealer->delete();
 
             return response()->json([
                 'status'  => true,

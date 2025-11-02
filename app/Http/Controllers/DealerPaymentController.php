@@ -27,48 +27,48 @@ class DealerPaymentController extends Controller
     }
 
     /**
-     * Calculate statistics for dealer payments.
+     * Calculate statistics for dealer payments (optimized queries).
      *
      * @return array
      */
-    private function calculateStatistics()
+    private function calculateStatistics(): array
     {
-        // Total remaining amount across all dealers
-        $totalRemaining = DB::table('bills')
-            ->where('payment_type', 'credit')
-            ->selectRaw('SUM(IFNULL(credit_amount, 0) - IFNULL(paid_amount, 0)) as total')
-            ->first();
-        
-        // Ensure non-negative
-        $totalRemaining = max(0, floatval($totalRemaining->total ?? 0));
-
-        // Total pending bills
-        $totalPendingBills = DB::table('bills')
-            ->where('payment_type', 'credit')
-            ->whereRaw('(credit_amount - COALESCE(paid_amount, 0)) > 0')
-            ->count();
-
-        // Total dealers with pending payments
-        $dealersWithPending = DB::table('dealers')
-            ->whereIn('id', function ($query) {
-                $query->select('dealer_id')
-                    ->from('bills')
-                    ->where('payment_type', 'credit')
-                    ->whereRaw('(credit_amount - COALESCE(paid_amount, 0)) > 0');
-            })
-            ->count();
-
-        // Today's payments received - use Carbon to ensure correct date comparison
+        // Use single query builder instance for better performance
         $today = Carbon::today()->format('Y-m-d');
-        $todayPayments = DB::table('dealer_payments')
-            ->whereDate('payment_date', $today)
-            ->sum('payment_amount');
-
-        // This month's payments received - use start and end of month for accuracy
         $startOfMonth = Carbon::now()->startOfMonth()->format('Y-m-d');
         $endOfMonth = Carbon::now()->endOfMonth()->format('Y-m-d');
+
+        // Optimized: Combine pending bills query
+        $pendingBillsQuery = DB::table('bills')
+            ->whereNull('bills.deleted_at')
+            ->where('payment_type', 'credit')
+            ->whereRaw('(credit_amount - COALESCE(paid_amount, 0)) > 0');
+
+        // Total remaining amount - single optimized query
+        $totalRemaining = (clone $pendingBillsQuery)
+            ->selectRaw('SUM(credit_amount - COALESCE(paid_amount, 0)) as total')
+            ->value('total');
+        $totalRemaining = max(0, floatval($totalRemaining ?? 0));
+
+        // Total pending bills - use count from same query
+        $totalPendingBills = (clone $pendingBillsQuery)->count();
+
+        // Total dealers with pending payments - optimized with distinct
+        $dealersWithPending = (clone $pendingBillsQuery)
+            ->distinct('dealer_id')
+            ->count('dealer_id');
+
+        // Today's payments - exclude soft-deleted
+        $todayPayments = DB::table('dealer_payments')
+            ->whereNull('dealer_payments.deleted_at')
+            ->where('payment_date', $today)
+            ->sum('payment_amount');
+
+        // Monthly payments - exclude soft-deleted
         $monthPayments = DB::table('dealer_payments')
-            ->whereBetween('payment_date', [$startOfMonth, $endOfMonth])
+            ->whereNull('dealer_payments.deleted_at')
+            ->where('payment_date', '>=', $startOfMonth)
+            ->where('payment_date', '<=', $endOfMonth)
             ->sum('payment_amount');
 
         return [
@@ -81,27 +81,23 @@ class DealerPaymentController extends Controller
     }
 
     /**
-     * Get dealers with remaining amounts for DataTable.
+     * Get dealers with remaining amounts for DataTable (optimized query).
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function getDealersData(Request $request)
     {
-        $dealers = Dealer::with('bills')
-            ->whereHas('bills', function ($query) {
-                $query->where('payment_type', 'credit')
-                    ->whereRaw('(credit_amount - COALESCE(paid_amount, 0)) > 0');
-            })
+        // Optimized: Use single query with aggregation instead of loading all bills
+        $dealers = Dealer::withPendingPayments()
             ->get()
             ->map(function ($dealer) {
-                $totalRemaining = $dealer->getTotalRemainingAmount();
                 return [
                     'id' => $dealer->id,
                     'name' => $dealer->name,
                     'contact_number' => $dealer->contact_number,
                     'address' => $dealer->address,
-                    'remaining_amount' => $totalRemaining,
+                    'remaining_amount' => $dealer->getTotalRemainingAmount(),
                 ];
             })
             ->filter(function ($dealer) {
@@ -119,7 +115,7 @@ class DealerPaymentController extends Controller
     }
 
     /**
-     * Get pending bills for a specific dealer.
+     * Get pending bills for a specific dealer (optimized).
      *
      * @param int $dealerId
      * @return \Illuminate\Http\JsonResponse
@@ -131,23 +127,16 @@ class DealerPaymentController extends Controller
             $pendingBills = $dealer->getPendingBills();
 
             $bills = $pendingBills->map(function ($bill) {
-                $remainingAmount = max(0, $bill->credit_amount - ($bill->paid_amount ?? 0));
-                
-                // Handle bill_date - convert to Carbon if it's a string
-                $billDate = $bill->bill_date;
-                if (!($billDate instanceof \Carbon\Carbon)) {
-                    $billDate = Carbon::parse($billDate);
-                }
-                
+                // bill_date is already cast to Carbon in Bill model
                 return [
                     'id' => $bill->id,
                     'bill_no' => $bill->bill_no,
-                    'bill_date' => $billDate->format('d/m/Y'),
+                    'bill_date' => $bill->bill_date->format('d/m/Y'),
                     'net_amount' => $bill->net_amount,
                     'credit_amount' => $bill->credit_amount,
                     'paid_amount' => $bill->paid_amount ?? 0,
-                    'remaining_amount' => $remainingAmount,
-                    'is_fully_paid' => $remainingAmount <= 0,
+                    'remaining_amount' => $bill->remaining_amount,
+                    'is_fully_paid' => $bill->isFullyPaid(),
                 ];
             });
 
@@ -227,7 +216,6 @@ class DealerPaymentController extends Controller
 
             $remainingPayment = $paymentAmount;
             $allocatedPayments = [];
-            $hasOverpayment = $paymentAmount > $totalRemaining;
 
             // Allocate payment to bills (oldest first)
             foreach ($pendingBills as $bill) {

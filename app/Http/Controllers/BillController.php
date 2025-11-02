@@ -6,6 +6,7 @@ use App\Models\BillItem;
 use App\Models\Dealer;
 use App\Models\DealerPayment;
 use App\Models\Purchase;
+use App\Traits\ConvertsDates;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -13,62 +14,75 @@ use Carbon\Carbon;
 
 class BillController extends Controller
 {
+    use ConvertsDates;
+
+    /**
+     * Display a listing of bills.
+     */
     public function index()
     {
-        $allBills = Bill::with(['items', 'dealer'])->orderBy('bill_date', 'desc')->get();
+        $allBills = Bill::with(['items', 'dealer', 'user'])
+            ->notDeleted()
+            ->orderBy('bill_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->get();
 
         return view('bill.index', ['allBills' => $allBills]);
     }
 
+    /**
+     * Show the form for creating a new bill.
+     */
     public function newBill()
     {
-        $stocksModel = Purchase::where('deleted', 0)->orderBy('purchase_date', 'desc')->get();
-        $dealers = Dealer::all();
+        // Only fetch unsold purchases - no need to load all
+        $stocksModel = Purchase::where('deleted', 0)
+            ->where('is_sold', 0)
+            ->orderBy('purchase_date', 'desc')
+            ->get();
+        
+        // Use simple query for dealers
+        $dealers = Dealer::orderBy('name')->get();
 
-        $lastBill   = Bill::orderBy('id', 'desc')->first();
-        $currentYear   = date('Y');
-        $nextBillNo = 1; // Default to 1
-        if ($lastBill) {
-            // Extract the year from the last bill number
-            preg_match('/BL(\d{4})/', (string) $lastBill->bill_no, $matches);
-            $lastYear = $matches[1] ?? null;
-
-            if ($lastYear == $currentYear) {
-                // If the year matches, increment the bill number
-                $lastId        = intval(substr((string) $lastBill->bill_no, -4)); // Get the last numeric part
-                $nextBillNo = $lastId + 1;
-            }
-        }
-
-        $formattedNumber = 'BL' . $currentYear . str_pad($nextBillNo, 4, '0', STR_PAD_LEFT);
+        // Generate next bill number
+        $nextBillNo = $this->generateNextBillNumber();
 
         return view('bill.add', [
             'stocksModel' => $stocksModel,
             'dealers' => $dealers,
-            'lastId'      => $formattedNumber,
+            'lastId' => $nextBillNo,
         ]);
     }
 
-    public function createBill(Request $request)
+    /**
+     * Generate next bill number based on year.
+     */
+    private function generateNextBillNumber(): string
     {
-        // Convert date format from dd/mm/yyyy to Y-m-d using Carbon
-        if ($request->bill_date) {
-            try {
-                $convertedDate = Carbon::createFromFormat('d/m/Y', $request->bill_date)->format('Y-m-d');
-                $request->merge(['bill_date' => $convertedDate]);
-            } catch (\Exception $e) {
-                // If conversion fails, keep original value for validation to handle
-            }
+        $currentYear = date('Y');
+        $lastBill = Bill::where('bill_no', 'LIKE', "BL{$currentYear}%")
+            ->orderByRaw('CAST(SUBSTRING(bill_no, -4) AS UNSIGNED) DESC')
+            ->first();
+
+        if ($lastBill) {
+            preg_match('/BL\d{4}(\d{4})/', (string) $lastBill->bill_no, $matches);
+            $nextBillNo = (intval($matches[1] ?? 0)) + 1;
+        } else {
+            $nextBillNo = 1;
         }
 
-        if ($request->warranty_expiry_date) {
-            try {
-                $convertedDate = Carbon::createFromFormat('d/m/Y', $request->warranty_expiry_date)->format('Y-m-d');
-                $request->merge(['warranty_expiry_date' => $convertedDate]);
-            } catch (\Exception $e) {
-                // If conversion fails, keep original value for validation to handle
-            }
-        }
+        return 'BL' . $currentYear . str_pad($nextBillNo, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Store a newly created bill.
+     */
+    public function createBill(Request $request)
+    {
+        // Convert date formats
+        $request->merge([
+            'bill_date' => $this->convertDateFormat($request->bill_date),
+        ]);
 
         // Validate request
         $request->validate([
@@ -87,17 +101,12 @@ class BillController extends Controller
         // Use database transaction
         DB::beginTransaction();
         try {
-            // Calculate cash and credit amounts based on payment type
-            $cashAmount = 0;
-            $creditAmount = 0;
-            
-            if ($request->payment_type === 'cash') {
-                $cashAmount = $request->net_amount;
-                $creditAmount = 0;
-            } else {
-                $cashAmount = $request->cash_amount ?? 0;
-                $creditAmount = $request->net_amount - $cashAmount;
-            }
+            // Calculate payment amounts
+            [$cashAmount, $creditAmount] = $this->calculatePaymentAmounts(
+                $request->payment_type,
+                $request->net_amount,
+                $request->cash_amount ?? 0
+            );
 
             // Create bill
             $bill = Bill::create([
@@ -124,60 +133,60 @@ class BillController extends Controller
                 'bill_by'           => Auth::id(),
             ]);
 
-            // If payment is cash, record the payment in dealer_payments table
+            // If payment is cash, record the payment
             if ($request->payment_type === 'cash') {
-                DealerPayment::create([
-                    'dealer_id'       => $request->dealer_id,
-                    'bill_id'         => $bill->id,
-                    'payment_amount'  => $request->net_amount,
-                    'payment_date'    => $request->bill_date,
-                    'payment_type'    => 'cash',
-                    'note'            => 'Full payment for bill ' . $bill->bill_no,
-                    'created_by'      => Auth::id(),
-                ]);
+                $this->recordCashPayment($bill, $request->dealer_id, $request->bill_date);
             }
 
-            // Create bill items and mark purchases as sold
-            $totalProfit = 0;
+            // Create bill items and mark purchases as sold - optimized bulk operations
+            $purchaseIds = collect($request->items)->pluck('item_id')->toArray();
+            $purchases = Purchase::whereIn('id', $purchaseIds)
+                ->where('is_sold', 0)
+                ->get()
+                ->keyBy('id');
+
+            // Validate all purchases are available
             foreach ($request->items as $item) {
-                $purchase = Purchase::findOrFail($item['item_id']);
-
-                // Check if item is already sold
-                if ($purchase->is_sold) {
+                if (!isset($purchases[$item['item_id']])) {
                     DB::rollBack();
-                    return back()->withErrors(['error' => 'Item ' . $purchase->imei . ' is already sold.'])->withInput();
+                    $purchase = Purchase::find($item['item_id']);
+                    $imei = $purchase ? $purchase->imei : $item['item_id'];
+                    return back()->withErrors(['error' => "Item {$imei} is already sold or not found."])->withInput();
                 }
+            }
 
-                $unitPrice = $item['unit_price'];
-                $totalAmount = $unitPrice * $item['quantity'];
-                $profit = ($unitPrice - $purchase->purchase_price) * $item['quantity'];
+            // Process items
+            $billItems = [];
+            foreach ($request->items as $item) {
+                $purchase = $purchases[$item['item_id']];
+                $unitPrice = floatval($item['unit_price']);
+                $quantity = intval($item['quantity']);
 
-                // Convert warranty date if provided
-                $warrantyDate = null;
-                if (!empty($item['warranty_expiry_date'])) {
-                    $warrantyDate = Carbon::createFromFormat('d/m/Y', $item['warranty_expiry_date'])->format('Y-m-d');
-                }
+                $billItems[] = [
+                    'bill_id' => $bill->id,
+                    'item_id' => $item['item_id'],
+                    'item_description' => $item['item_description'],
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'total_amount' => $unitPrice * $quantity,
+                    'warranty_expiry_date' => !empty($item['warranty_expiry_date']) 
+                        ? $this->convertDateFormat($item['warranty_expiry_date']) 
+                        : null,
+                    'profit' => ($unitPrice - $purchase->purchase_price) * $quantity,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
 
-                // Create bill item
-                BillItem::create([
-                    'bill_id'            => $bill->id,
-                    'item_id'            => $item['item_id'],
-                    'item_description'   => $item['item_description'],
-                    'quantity'           => $item['quantity'],
-                    'unit_price'         => $unitPrice,
-                    'total_amount'       => $totalAmount,
-                    'warranty_expiry_date' => $warrantyDate,
-                    'profit'             => $profit,
-                ]);
+            // Bulk insert bill items
+            BillItem::insert($billItems);
 
-                $totalProfit += $profit;
-
-                // Mark purchase as sold
-                $purchase->update([
-                    'is_sold'   => 1,
+            // Bulk update purchases as sold
+            Purchase::whereIn('id', $purchaseIds)
+                ->update([
+                    'is_sold' => 1,
                     'sell_date' => $request->bill_date,
                 ]);
-            }
 
             DB::commit();
 
@@ -189,81 +198,102 @@ class BillController extends Controller
         }
     }
 
+    /**
+     * Display the specified bill.
+     */
     public function billDetail($id)
     {
-        $bill = Bill::with(['items.purchase', 'user', 'dealer'])->findOrFail($id);
+        $bill = Bill::with(['items.purchase', 'user', 'dealer'])
+            ->notDeleted()
+            ->findOrFail($id);
+        
         $amountInWords = $this->amoutInWords(floatval($bill->net_amount));
 
-        return view('bill.detail', ['bill' => $bill, 'amountInWords' => $amountInWords]);
+        return view('bill.detail', compact('bill', 'amountInWords'));
     }
 
+    /**
+     * Print the specified bill.
+     */
     public function printBill($id)
     {
-        $bill       = Bill::with(['items.purchase', 'user', 'dealer'])->findOrFail($id);
+        $bill = Bill::with(['items.purchase', 'user', 'dealer'])
+            ->notDeleted()
+            ->findOrFail($id);
+        
         $amountInWords = $this->amoutInWords(floatval($bill->net_amount));
 
-        return view('bill.print', ['bill' => $bill, 'amountInWords' => $amountInWords]);
+        return view('bill.print', compact('bill', 'amountInWords'));
     }
 
+    /**
+     * Fetch purchase data by IMEI.
+     */
     public function fetchModelData($imei)
     {
         $purchase = Purchase::where('imei', 'LIKE', "%{$imei}%")
             ->where('is_sold', 0)
+            ->where('deleted', 0)
             ->first();
+
         if (!$purchase) {
             return response()->json([
                 'error' => 'IMEI Not in stock',
-            ]);
+            ], 404);
         }
-        return response()->json([
-            'purchase' => $purchase,
-        ]);
+
+        return response()->json(['purchase' => $purchase]);
     }
 
+    /**
+     * Fetch dealer data by ID.
+     */
     public function fetchDealerData($id)
     {
         $dealer = Dealer::find($id);
+
         if (!$dealer) {
             return response()->json([
                 'error' => 'Dealer not found',
             ], 404);
         }
-        return response()->json([
-            'dealer' => $dealer,
-        ]);
+
+        return response()->json(['dealer' => $dealer]);
     }
 
+    /**
+     * Show the form for editing the specified bill.
+     */
     public function editBill($id)
     {
-        $bill     = Bill::with('items.purchase')->findOrFail($id);
-        $stocksModel = Purchase::where('deleted', 0)->orderBy('purchase_date', 'desc')->get();
-        $dealers = Dealer::all();
+        $bill = Bill::with('items.purchase')
+            ->notDeleted()
+            ->findOrFail($id);
+        
+        // Only fetch unsold purchases
+        $stocksModel = Purchase::where('deleted', 0)
+            ->where('is_sold', 0)
+            ->orderBy('purchase_date', 'desc')
+            ->get();
+        
+        $dealers = Dealer::orderBy('name')->get();
 
-        return view('bill.edit', ['bill' => $bill, 'stocksModel' => $stocksModel, 'dealers' => $dealers]);
+        return view('bill.edit', compact('bill', 'stocksModel', 'dealers'));
     }
 
+    /**
+     * Update the specified bill.
+     */
     public function updateBill(Request $request, $id)
     {
-        $bill = Bill::with('items.purchase')->findOrFail($id);
+        $bill = Bill::with('items.purchase')
+            ->notDeleted()
+            ->findOrFail($id);
 
-        // Convert date format from dd/mm/yyyy to Y-m-d using Carbon
-        if ($request->bill_date) {
-            try {
-                $convertedDate = Carbon::createFromFormat('d/m/Y', $request->bill_date)->format('Y-m-d');
-                $request->merge(['bill_date' => $convertedDate]);
-            } catch (\Exception $e) {
-                // If conversion fails, keep original value for validation to handle
-            }
-        }
-
-        if ($request->warranty_expiry_date) {
-            try {
-                $convertedDate = Carbon::createFromFormat('d/m/Y', $request->warranty_expiry_date)->format('Y-m-d');
-                $request->merge(['warranty_expiry_date' => $convertedDate]);
-            } catch (\Exception $e) {
-                // If conversion fails, keep original value for validation to handle
-            }
-        }
+        // Convert date formats
+        $request->merge([
+            'bill_date' => $this->convertDateFormat($request->bill_date),
+        ]);
 
         // Validate dates after conversion
         $request->validate([
@@ -281,30 +311,25 @@ class BillController extends Controller
         // Use database transaction
         DB::beginTransaction();
         try {
-            // Mark all old purchases as unsold
-            foreach ($bill->items as $item) {
-                if ($item->purchase) {
-                    $item->purchase->update([
-                        'is_sold'   => 0,
-                        'sell_date' => null
+            // Get old purchase IDs and mark them as unsold (bulk update)
+            $oldPurchaseIds = $bill->items->pluck('item_id')->filter()->toArray();
+            if (!empty($oldPurchaseIds)) {
+                Purchase::whereIn('id', $oldPurchaseIds)
+                    ->update([
+                        'is_sold' => 0,
+                        'sell_date' => null,
                     ]);
-                }
             }
 
             // Delete old bill items
             $bill->items()->delete();
 
-            // Calculate cash and credit amounts based on payment type
-            $cashAmount = 0;
-            $creditAmount = 0;
-            
-            if ($request->payment_type === 'cash') {
-                $cashAmount = $request->net_amount;
-                $creditAmount = 0;
-            } else {
-                $cashAmount = $request->cash_amount ?? 0;
-                $creditAmount = $request->net_amount - $cashAmount;
-            }
+            // Calculate payment amounts
+            [$cashAmount, $creditAmount] = $this->calculatePaymentAmounts(
+                $request->payment_type,
+                $request->net_amount,
+                $request->cash_amount ?? 0
+            );
 
             // Update bill details
             $bill->update([
@@ -334,60 +359,59 @@ class BillController extends Controller
             if ($request->payment_type === 'cash') {
                 // Delete old payment records for this bill if any
                 $bill->payments()->delete();
-                
                 // Create new payment record
-                DealerPayment::create([
-                    'dealer_id'       => $request->dealer_id,
-                    'bill_id'         => $bill->id,
-                    'payment_amount'  => $request->net_amount,
-                    'payment_date'    => $request->bill_date,
-                    'payment_type'    => 'cash',
-                    'note'            => 'Full payment for bill ' . $bill->bill_no,
-                    'created_by'      => Auth::id(),
-                ]);
+                $this->recordCashPayment($bill, $request->dealer_id, $request->bill_date);
             }
 
-            // Create new bill items and mark purchases as sold
-            $totalProfit = 0;
+            // Create new bill items and mark purchases as sold - optimized bulk operations
+            $newPurchaseIds = collect($request->items)->pluck('item_id')->toArray();
+            $purchases = Purchase::whereIn('id', $newPurchaseIds)
+                ->where('is_sold', 0)
+                ->get()
+                ->keyBy('id');
+
+            // Validate all purchases are available
             foreach ($request->items as $item) {
-                $purchase = Purchase::findOrFail($item['item_id']);
-
-                // Check if item is already sold
-                if ($purchase->is_sold) {
+                if (!isset($purchases[$item['item_id']])) {
                     DB::rollBack();
-                    return back()->withErrors(['error' => 'Item ' . $purchase->imei . ' is already sold.'])->withInput();
+                    $purchase = Purchase::find($item['item_id']);
+                    $imei = $purchase ? $purchase->imei : $item['item_id'];
+                    return back()->withErrors(['error' => "Item {$imei} is already sold or not found."])->withInput();
                 }
+            }
 
-                $unitPrice = $item['unit_price'];
-                $totalAmount = $unitPrice * $item['quantity'];
-                $profit = ($unitPrice - $purchase->purchase_price) * $item['quantity'];
+            // Process items
+            $billItems = [];
+            foreach ($request->items as $item) {
+                $purchase = $purchases[$item['item_id']];
+                $unitPrice = floatval($item['unit_price']);
+                $quantity = intval($item['quantity']);
 
-                // Convert warranty date if provided
-                $warrantyDate = null;
-                if (!empty($item['warranty_expiry_date'])) {
-                    $warrantyDate = Carbon::createFromFormat('d/m/Y', $item['warranty_expiry_date'])->format('Y-m-d');
-                }
+                $billItems[] = [
+                    'bill_id' => $bill->id,
+                    'item_id' => $item['item_id'],
+                    'item_description' => $item['item_description'],
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'total_amount' => $unitPrice * $quantity,
+                    'warranty_expiry_date' => !empty($item['warranty_expiry_date']) 
+                        ? $this->convertDateFormat($item['warranty_expiry_date']) 
+                        : null,
+                    'profit' => ($unitPrice - $purchase->purchase_price) * $quantity,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
 
-                // Create bill item
-                BillItem::create([
-                    'bill_id'            => $bill->id,
-                    'item_id'            => $item['item_id'],
-                    'item_description'   => $item['item_description'],
-                    'quantity'           => $item['quantity'],
-                    'unit_price'         => $unitPrice,
-                    'total_amount'       => $totalAmount,
-                    'warranty_expiry_date' => $warrantyDate,
-                    'profit'             => $profit,
-                ]);
+            // Bulk insert bill items
+            BillItem::insert($billItems);
 
-                $totalProfit += $profit;
-
-                // Mark purchase as sold
-                $purchase->update([
-                    'is_sold'   => 1,
+            // Bulk update purchases as sold
+            Purchase::whereIn('id', $newPurchaseIds)
+                ->update([
+                    'is_sold' => 1,
                     'sell_date' => $request->bill_date,
                 ]);
-            }
 
             DB::commit();
 
@@ -399,20 +423,23 @@ class BillController extends Controller
         }
     }
 
+    /**
+     * Remove the specified bill.
+     */
     public function deleteBill($id)
     {
         DB::beginTransaction();
         try {
-            $bill = Bill::with('items.purchase')->findOrFail($id);
+            $bill = Bill::with('items')->notDeleted()->findOrFail($id);
 
-            // Mark the purchases as unsold so they can be sold again
-            foreach ($bill->items as $item) {
-                if ($item->purchase) {
-                    $item->purchase->update([
+            // Mark purchases as unsold (bulk update)
+            $purchaseIds = $bill->items->pluck('item_id')->filter()->toArray();
+            if (!empty($purchaseIds)) {
+                Purchase::whereIn('id', $purchaseIds)
+                    ->update([
                         'is_sold' => 0,
-                        'sell_date' => null
+                        'sell_date' => null,
                     ]);
-                }
             }
 
             // Soft delete bill items
@@ -430,7 +457,49 @@ class BillController extends Controller
         }
     }
 
-    public function amoutInWords(float $amount): string
+    /**
+     * Calculate cash and credit amounts based on payment type.
+     *
+     * @param string $paymentType
+     * @param float $netAmount
+     * @param float $cashAmount (not used for credit payments - always 0)
+     * @return array [cash_amount, credit_amount]
+     */
+    private function calculatePaymentAmounts(string $paymentType, float $netAmount, float $cashAmount = 0): array
+    {
+        if ($paymentType === 'cash') {
+            return [$netAmount, 0];
+        }
+
+        // For credit payments, cash_amount is always 0, credit_amount is the full net_amount
+        return [0, $netAmount];
+    }
+
+    /**
+     * Record cash payment for a bill.
+     *
+     * @param Bill $bill
+     * @param int $dealerId
+     * @param string $paymentDate
+     * @return void
+     */
+    private function recordCashPayment(Bill $bill, int $dealerId, string $paymentDate): void
+    {
+        DealerPayment::create([
+            'dealer_id' => $dealerId,
+            'bill_id' => $bill->id,
+            'payment_amount' => $bill->net_amount,
+            'payment_date' => $paymentDate,
+            'payment_type' => 'cash',
+            'note' => 'Full payment for bill ' . $bill->bill_no,
+            'created_by' => Auth::id(),
+        ]);
+    }
+
+    /**
+     * Convert amount to words (Indian numbering system).
+     */
+    protected function amoutInWords(float $amount): string
     {
         $amount_after_decimal = round($amount - ($num = floor($amount)), 2) * 100;
         // Check if there is any number after decimal

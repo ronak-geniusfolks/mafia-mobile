@@ -125,12 +125,6 @@
                                     <input type="text" readonly class="form-control form-control-sm" id="dealer_contact" placeholder="Contact Number">
                                 </div>
 
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold" id="cash_amount_label" style="display:none;">Cash Amount</label>
-                                    <input type="number" class="form-control form-control-sm" id="cash_amount" 
-                                        name="cash_amount" step="0.01" min="0" placeholder="0.00" 
-                                        style="display:none;" value="{{ old('cash_amount', 0) }}">
-                                </div>
                             </div>
 
                             <div class="row g-3 mt-2">
@@ -258,18 +252,6 @@
                 }
             });
 
-            // Handle payment type change
-            $('#payment_type').on('change', function() {
-                const paymentType = $(this).val();
-                if (paymentType === 'credit') {
-                    $('#cash_amount_label').show();
-                    $('#cash_amount').show();
-                } else {
-                    $('#cash_amount_label').hide();
-                    $('#cash_amount').hide();
-                    $('#cash_amount').val(0);
-                }
-            });
 
             const oldItems = @json(old('items', []));
             if (oldItems && Object.keys(oldItems).length > 0) {
