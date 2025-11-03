@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             SuperAdminSeeder::class,
             AddInvoiceDeletePermissionSeeder::class,
             AddBillPermissionsSeeder::class,
+            AddDealerPaymentPermissionsSeeder::class,
         ]);
     }
 }

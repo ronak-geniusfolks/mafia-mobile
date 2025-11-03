@@ -80,6 +80,8 @@
                             <th>Dealer Name</th>
                             <th>Contact Number</th>
                             <th>Address</th>
+                            <th>Total Amount</th>
+                            <th>Paid Amount</th>
                             <th>Remaining Amount</th>
                             <th>Action</th>
                         </tr>
@@ -115,7 +117,7 @@
 
                             <!-- Total Remaining -->
                             <div class="alert alert-warning mb-4">
-                                <h6 class="mb-0"><strong>Total Remaining Amount: ₹<span id="totalRemainingAmount">0.00</span></strong></h6>
+                                <h6 class="mb-0"><strong>Total Remaining Amount: {{ config('constant.currency') }} <span id="totalRemainingAmount">0.00</span></strong></h6>
                             </div>
 
                             <!-- Pending Bills List -->
@@ -145,12 +147,12 @@
                                     <label for="payment_amount" class="font-weight-bold">
                                         Payment Amount <span class="text-danger">*</span>
                                     </label>
-                                    <input type="number" 
+                                    <input type="number"
                                            step="0.01"
                                            min="0.01"
-                                           class="form-control form-control-lg @error('payment_amount') is-invalid @enderror" 
-                                           id="payment_amount" 
-                                           name="payment_amount" 
+                                           class="form-control form-control-lg @error('payment_amount') is-invalid @enderror"
+                                           id="payment_amount"
+                                           name="payment_amount"
                                            placeholder="Enter payment amount"
                                            autocomplete="off"
                                            required>
@@ -164,10 +166,10 @@
                                     <label for="payment_date" class="font-weight-bold">
                                         Payment Date <span class="text-danger">*</span>
                                     </label>
-                                    <input type="text" 
-                                           class="form-control form-control-lg @error('payment_date') is-invalid @enderror" 
-                                           id="payment_date" 
-                                           name="payment_date" 
+                                    <input type="text"
+                                           class="form-control form-control-lg @error('payment_date') is-invalid @enderror"
+                                           id="payment_date"
+                                           name="payment_date"
                                            placeholder="DD/MM/YYYY"
                                            autocomplete="off"
                                            value="{{ date('d/m/Y') }}"
@@ -181,9 +183,9 @@
                                     <label for="payment_type" class="font-weight-bold">
                                         Payment Type <span class="text-danger">*</span>
                                     </label>
-                                    <select class="form-control form-control-lg @error('payment_type') is-invalid @enderror" 
-                                            id="payment_type" 
-                                            name="payment_type" 
+                                    <select class="form-control form-control-lg @error('payment_type') is-invalid @enderror"
+                                            id="payment_type"
+                                            name="payment_type"
                                             required>
                                         <option value="cash">Cash</option>
                                         <option value="credit">Credit</option>
@@ -197,10 +199,10 @@
                                     <label for="note" class="font-weight-bold">
                                         Note
                                     </label>
-                                    <textarea class="form-control @error('note') is-invalid @enderror" 
-                                              id="note" 
-                                              name="note" 
-                                              rows="2" 
+                                    <textarea class="form-control @error('note') is-invalid @enderror"
+                                              id="note"
+                                              name="note"
+                                              rows="2"
                                               placeholder="Add a note (optional)"></textarea>
                                     @error('note')
                                         <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -278,6 +280,18 @@
         color: #dc3545;
     }
 
+    .paid-amount {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #28a745;
+    }
+
+    .total-amount {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color:rgb(255, 119, 7);
+    }
+
     @media (max-width: 768px) {
         .modal-dialog {
             margin: 10px;
@@ -295,7 +309,7 @@
     <script>
         $(document).ready(function() {
             // Initialize datepicker
-            $('#payment_date').datepicker({ 
+            $('#payment_date').datepicker({
                 dateFormat: 'dd/mm/yy',
                 changeMonth: true,
                 changeYear: true
@@ -338,18 +352,18 @@
                     }
                 },
                 columns: [
-                    { 
+                    {
                         data: null,
                         render: function(data, type, row, meta) {
                             return meta.row + 1;
                         },
-                        orderable: false, 
-                        searchable: false 
+                        orderable: false,
+                        searchable: false
                     },
                     { data: 'name', name: 'name' },
                     { data: 'contact_number', name: 'contact_number' },
-                    { 
-                        data: 'address', 
+                    {
+                        data: 'address',
                         name: 'address',
                         render: function(data) {
                             if (!data || data.trim() === '') {
@@ -358,11 +372,25 @@
                             return data.length > 50 ? data.substring(0, 50) + '...' : data;
                         }
                     },
-                    { 
-                        data: 'remaining_amount', 
+                    {
+                        data: 'total_amount',
+                        name: 'total_amount',
+                        render: function(data) {
+                            return '<span class="total-amount">' + '{{ config('constant.currency') }} ' + parseFloat(data).toFixed(2) + '</span>';
+                        }
+                    },
+                    {
+                        data: 'paid_amount',
+                        name: 'paid_amount',
+                        render: function(data) {
+                            return '<span class="paid-amount">' + '{{ config('constant.currency') }} ' + parseFloat(data).toFixed(2) + '</span>';
+                        }
+                    },
+                    {
+                        data: 'remaining_amount',
                         name: 'remaining_amount',
                         render: function(data) {
-                            return '<span class="remaining-amount">₹' + parseFloat(data).toFixed(2) + '</span>';
+                            return '<span class="remaining-amount">' + '{{ config('constant.currency') }} ' + parseFloat(data).toFixed(2) + '</span>';
                         }
                     },
                     {
@@ -430,9 +458,9 @@
                                     billsHtml += '<tr>';
                                     billsHtml += '<td><strong>' + bill.bill_no + '</strong></td>';
                                     billsHtml += '<td>' + bill.bill_date + '</td>';
-                                    billsHtml += '<td>₹' + parseFloat(bill.net_amount).toFixed(2) + '</td>';
-                                    billsHtml += '<td>₹' + parseFloat(bill.paid_amount).toFixed(2) + '</td>';
-                                    billsHtml += '<td><strong class="text-danger">₹' + parseFloat(bill.remaining_amount).toFixed(2) + '</strong></td>';
+                                    billsHtml += '<td>' + '{{ config('constant.currency') }} ' + parseFloat(bill.net_amount).toFixed(2) + '</td>';
+                                    billsHtml += '<td>' + '{{ config('constant.currency') }} ' + parseFloat(bill.paid_amount).toFixed(2) + '</td>';
+                                    billsHtml += '<td><strong class="text-danger">' + '{{ config('constant.currency') }} ' + parseFloat(bill.remaining_amount).toFixed(2) + '</strong></td>';
                                     billsHtml += '</tr>';
                                 });
                             } else {
@@ -484,17 +512,18 @@
                     success: function(response) {
                         if (response && response.status) {
                             toastr.success(response.message || 'Payment processed successfully!');
-                            
+
                             // Reset form
                             form[0].reset();
                             $('#paymentModal').modal('hide');
-                            
+
                             // Reload DataTable (which will also update statistics)
                             table.ajax.reload(function(json) {
                                 if (json.statistics) {
                                     updateStatistics(json.statistics);
                                 }
                             }, false);
+                            submitBtn.prop('disabled', false).html(originalHtml);
                         } else {
                             toastr.error(response.message || 'Failed to process payment.');
                             submitBtn.prop('disabled', false).html(originalHtml);
@@ -502,18 +531,18 @@
                     },
                     error: function(xhr) {
                         let errorMsg = 'Something went wrong. Please try again.';
-                        
+
                         // Clear previous errors
                         $('.is-invalid').removeClass('is-invalid');
                         $('.invalid-feedback').remove();
-                        
+
                         // Handle validation errors (422 status)
                         if (xhr.status === 422) {
                             let errors = {};
                             if (xhr.responseJSON && xhr.responseJSON.errors) {
                                 errors = xhr.responseJSON.errors;
                             }
-                            
+
                             if (Object.keys(errors).length > 0) {
                                 $.each(errors, function(key, value) {
                                     const field = $('#' + key);
@@ -524,7 +553,7 @@
                                         field.after('<div class="invalid-feedback d-block">' + value + '</div>');
                                     }
                                 });
-                                
+
                                 errorMsg = 'Please correct the errors in the form.';
                             } else if (xhr.responseJSON && xhr.responseJSON.message) {
                                 errorMsg = xhr.responseJSON.message;
@@ -532,7 +561,7 @@
                         } else if (xhr.responseJSON && xhr.responseJSON.message) {
                             errorMsg = xhr.responseJSON.message;
                         }
-                        
+
                         toastr.error(errorMsg);
                         submitBtn.prop('disabled', false).html(originalHtml);
                     }

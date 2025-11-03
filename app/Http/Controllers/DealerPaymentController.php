@@ -1,14 +1,13 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Bill;
 use App\Models\Dealer;
 use App\Models\DealerPayment;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class DealerPaymentController extends Controller
 {
@@ -22,7 +21,7 @@ class DealerPaymentController extends Controller
     {
         // Calculate statistics
         $statistics = $this->calculateStatistics();
-        
+
         return view('dealer-payments.index', compact('statistics'));
     }
 
@@ -34,9 +33,9 @@ class DealerPaymentController extends Controller
     private function calculateStatistics(): array
     {
         // Use single query builder instance for better performance
-        $today = Carbon::today()->format('Y-m-d');
+        $today        = Carbon::today()->format('Y-m-d');
         $startOfMonth = Carbon::now()->startOfMonth()->format('Y-m-d');
-        $endOfMonth = Carbon::now()->endOfMonth()->format('Y-m-d');
+        $endOfMonth   = Carbon::now()->endOfMonth()->format('Y-m-d');
 
         // Optimized: Combine pending bills query
         $pendingBillsQuery = DB::table('bills')
@@ -72,11 +71,11 @@ class DealerPaymentController extends Controller
             ->sum('payment_amount');
 
         return [
-            'total_remaining' => round($totalRemaining, 2),
-            'total_pending_bills' => $totalPendingBills,
+            'total_remaining'      => round($totalRemaining, 2),
+            'total_pending_bills'  => $totalPendingBills,
             'dealers_with_pending' => $dealersWithPending,
-            'today_payments' => round($todayPayments ?? 0, 2),
-            'month_payments' => round($monthPayments ?? 0, 2),
+            'today_payments'       => round($todayPayments ?? 0, 2),
+            'month_payments'       => round($monthPayments ?? 0, 2),
         ];
     }
 
@@ -93,23 +92,21 @@ class DealerPaymentController extends Controller
             ->get()
             ->map(function ($dealer) {
                 return [
-                    'id' => $dealer->id,
-                    'name' => $dealer->name,
-                    'contact_number' => $dealer->contact_number,
-                    'address' => $dealer->address,
-                    'remaining_amount' => $dealer->getTotalRemainingAmount(),
+                    'id'               => $dealer->id,
+                    'name'             => $dealer->name,
+                    'contact_number'   => $dealer->contact_number,
+                    'address'          => $dealer->address,
+                    'total_amount'     => round($dealer->getTotalAmount(), 2),
+                    'paid_amount'      => round($dealer->getTotalPaidAmount(), 2),
+                    'remaining_amount' => round($dealer->getTotalRemainingAmount(), 2),
                 ];
-            })
-            ->filter(function ($dealer) {
-                return $dealer['remaining_amount'] > 0;
-            })
-            ->values();
+            });
 
         // Get updated statistics
         $statistics = $this->calculateStatistics();
 
         return response()->json([
-            'data' => $dealers,
+            'data'       => $dealers,
             'statistics' => $statistics,
         ]);
     }
@@ -123,38 +120,38 @@ class DealerPaymentController extends Controller
     public function getDealerBills($dealerId)
     {
         try {
-            $dealer = Dealer::findOrFail($dealerId);
+            $dealer       = Dealer::findOrFail($dealerId);
             $pendingBills = $dealer->getPendingBills();
 
             $bills = $pendingBills->map(function ($bill) {
                 // bill_date is already cast to Carbon in Bill model
                 return [
-                    'id' => $bill->id,
-                    'bill_no' => $bill->bill_no,
-                    'bill_date' => $bill->bill_date->format('d/m/Y'),
-                    'net_amount' => $bill->net_amount,
-                    'credit_amount' => $bill->credit_amount,
-                    'paid_amount' => $bill->paid_amount ?? 0,
+                    'id'               => $bill->id,
+                    'bill_no'          => $bill->bill_no,
+                    'bill_date'        => $bill->bill_date->format('d/m/Y'),
+                    'net_amount'       => $bill->net_amount,
+                    'credit_amount'    => $bill->credit_amount,
+                    'paid_amount'      => $bill->paid_amount ?? 0,
                     'remaining_amount' => $bill->remaining_amount,
-                    'is_fully_paid' => $bill->isFullyPaid(),
+                    'is_fully_paid'    => $bill->isFullyPaid(),
                 ];
             });
 
             $totalRemaining = $dealer->getTotalRemainingAmount();
 
             return response()->json([
-                'status' => true,
-                'dealer' => [
-                    'id' => $dealer->id,
-                    'name' => $dealer->name,
+                'status'          => true,
+                'dealer'          => [
+                    'id'             => $dealer->id,
+                    'name'           => $dealer->name,
                     'contact_number' => $dealer->contact_number,
                 ],
-                'bills' => $bills,
+                'bills'           => $bills,
                 'total_remaining' => $totalRemaining,
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => false,
+                'status'  => false,
                 'message' => 'Failed to fetch dealer bills: ' . $e->getMessage(),
             ], 500);
         }
@@ -169,11 +166,11 @@ class DealerPaymentController extends Controller
     public function storePayment(Request $request)
     {
         $request->validate([
-            'dealer_id' => 'required|integer|exists:dealers,id',
+            'dealer_id'      => 'required|integer|exists:dealers,id',
             'payment_amount' => 'required|numeric|min:0.01',
-            'payment_date' => 'required|date',
-            'payment_type' => 'required|string|in:cash,credit',
-            'note' => 'nullable|string|max:1000',
+            'payment_date'   => 'required|date',
+            'payment_type'   => 'required|string|in:cash,credit',
+            'note'           => 'nullable|string|max:1000',
         ]);
 
         DB::beginTransaction();
@@ -184,37 +181,37 @@ class DealerPaymentController extends Controller
                 $paymentDate = Carbon::createFromFormat('d/m/Y', $paymentDate)->format('Y-m-d');
             }
 
-            $dealer = Dealer::findOrFail($request->dealer_id);
-            $paymentAmount = floatval($request->payment_amount);
-            $pendingBills = $dealer->getPendingBills();
+            $dealer         = Dealer::findOrFail($request->dealer_id);
+            $paymentAmount  = floatval($request->payment_amount);
+            $pendingBills   = $dealer->getPendingBills();
             $totalRemaining = $dealer->getTotalRemainingAmount();
 
             // If no pending bills, create a payment record without bill allocation
             if ($pendingBills->isEmpty()) {
                 // Create a general payment record for overpayment/advance
                 DealerPayment::create([
-                    'dealer_id' => $dealer->id,
-                    'bill_id' => null,
+                    'dealer_id'      => $dealer->id,
+                    'bill_id'        => null,
                     'payment_amount' => $paymentAmount,
-                    'payment_date' => $paymentDate,
-                    'payment_type' => $request->payment_type,
-                    'note' => ($request->note ?? '') . ' (Advance payment - No pending bills)',
-                    'created_by' => Auth::id(),
+                    'payment_date'   => $paymentDate,
+                    'payment_type'   => $request->payment_type,
+                    'note'           => ($request->note ?? '') . ' (Advance payment - No pending bills)',
+                    'created_by'     => Auth::id(),
                 ]);
 
                 DB::commit();
 
                 return response()->json([
-                    'status' => true,
+                    'status'  => true,
                     'message' => 'Advance payment recorded successfully (No pending bills).',
-                    'data' => [
-                        'payment_amount' => $paymentAmount,
+                    'data'    => [
+                        'payment_amount'     => $paymentAmount,
                         'allocated_payments' => [['bill_no' => 'N/A', 'amount' => $paymentAmount, 'type' => 'advance']],
                     ],
                 ]);
             }
 
-            $remainingPayment = $paymentAmount;
+            $remainingPayment  = $paymentAmount;
             $allocatedPayments = [];
 
             // Allocate payment to bills (oldest first)
@@ -232,23 +229,23 @@ class DealerPaymentController extends Controller
                     $newPaidAmount = ($bill->paid_amount ?? 0) + $allocationAmount;
                     $bill->update([
                         'paid_amount' => $newPaidAmount,
-                        'is_paid' => ($newPaidAmount >= $bill->credit_amount) ? 1 : 0,
+                        'is_paid'     => ($newPaidAmount >= $bill->credit_amount) ? 1 : 0,
                     ]);
 
                     // Create payment record for this bill
                     $payment = DealerPayment::create([
-                        'dealer_id' => $dealer->id,
-                        'bill_id' => $bill->id,
+                        'dealer_id'      => $dealer->id,
+                        'bill_id'        => $bill->id,
                         'payment_amount' => $allocationAmount,
-                        'payment_date' => $paymentDate,
-                        'payment_type' => $request->payment_type,
-                        'note' => $request->note ?? ('Payment for bill ' . $bill->bill_no),
-                        'created_by' => Auth::id(),
+                        'payment_date'   => $paymentDate,
+                        'payment_type'   => $request->payment_type,
+                        'note'           => $request->note ?? ('Payment for bill ' . $bill->bill_no),
+                        'created_by'     => Auth::id(),
                     ]);
 
                     $allocatedPayments[] = [
                         'bill_no' => $bill->bill_no,
-                        'amount' => $allocationAmount,
+                        'amount'  => $allocationAmount,
                     ];
 
                     $remainingPayment -= $allocationAmount;
@@ -256,41 +253,41 @@ class DealerPaymentController extends Controller
             }
 
             // If there's an overpayment (remainingPayment > 0), allocate it to the oldest bill as advance
-            if ($remainingPayment > 0 && !empty($pendingBills)) {
+            if ($remainingPayment > 0 && ! empty($pendingBills)) {
                 $oldestBill = $pendingBills->first();
-                
+
                 // Create payment record for overpayment/advance
                 DealerPayment::create([
-                    'dealer_id' => $dealer->id,
-                    'bill_id' => $oldestBill->id,
+                    'dealer_id'      => $dealer->id,
+                    'bill_id'        => $oldestBill->id,
                     'payment_amount' => $remainingPayment,
-                    'payment_date' => $paymentDate,
-                    'payment_type' => $request->payment_type,
-                    'note' => ($request->note ?? '') . ' (Advance payment: ₹' . number_format($remainingPayment, 2) . ')',
-                    'created_by' => Auth::id(),
+                    'payment_date'   => $paymentDate,
+                    'payment_type'   => $request->payment_type,
+                    'note'           => ($request->note ?? '') . ' (Advance payment: ₹' . number_format($remainingPayment, 2) . ')',
+                    'created_by'     => Auth::id(),
                 ]);
 
                 $allocatedPayments[] = [
                     'bill_no' => $oldestBill->bill_no,
-                    'amount' => $remainingPayment,
-                    'type' => 'advance',
+                    'amount'  => $remainingPayment,
+                    'type'    => 'advance',
                 ];
             }
 
             DB::commit();
 
             return response()->json([
-                'status' => true,
+                'status'  => true,
                 'message' => 'Payment processed successfully.',
-                'data' => [
-                    'payment_amount' => $paymentAmount,
+                'data'    => [
+                    'payment_amount'     => $paymentAmount,
                     'allocated_payments' => $allocatedPayments,
                 ],
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'status' => false,
+                'status'  => false,
                 'message' => 'Failed to process payment: ' . $e->getMessage(),
             ], 500);
         }

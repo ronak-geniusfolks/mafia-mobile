@@ -54,6 +54,22 @@ class Dealer extends Model
     }
 
     /**
+     * Calculate total amount for this dealer (optimized).
+     */
+    public function getTotalAmount(): float
+    {
+        return $this->creditBills()->sum('total_amount');
+    }
+
+    /**
+     * Calculate total paid amount for this dealer (optimized).
+     */
+    public function getTotalPaidAmount(): float
+    {
+        return $this->creditBills()->sum('paid_amount');
+    }
+
+    /**
      * Calculate total remaining amount for this dealer (optimized).
      */
     public function getTotalRemainingAmount(): float
@@ -62,7 +78,7 @@ class Dealer extends Model
         $result = $this->creditBills()
             ->selectRaw('SUM(credit_amount - COALESCE(paid_amount, 0)) as total_remaining')
             ->value('total_remaining');
-        
+
         return max(0, floatval($result ?? 0));
     }
 
