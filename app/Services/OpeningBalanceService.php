@@ -1,9 +1,13 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\DayOpeningBalance;
 use App\Models\Transaction;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Facades\DB;
 
 class OpeningBalanceService
@@ -42,7 +46,7 @@ class OpeningBalanceService
                 DayOpeningBalance::updateOrCreate(
                     ['date' => $date],
                     [
-                        'balance'      => $openingBalance['total'],
+                        'balance' => $openingBalance['total'],
                         'cash_balance' => $openingBalance['cash'],
                         'bank_balance' => $openingBalance['bank'],
                     ]
@@ -53,10 +57,10 @@ class OpeningBalanceService
                 'success' => true,
                 'message' => 'Opening balances recalculated for all dates.',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Error recalculating all balances: ' . $e->getMessage(),
+                'message' => 'Error recalculating all balances: '.$e->getMessage(),
             ];
         }
     }
@@ -98,7 +102,7 @@ class OpeningBalanceService
                 DayOpeningBalance::updateOrCreate(
                     ['date' => $date],
                     [
-                        'balance'      => $openingBalance['total'],
+                        'balance' => $openingBalance['total'],
                         'cash_balance' => $openingBalance['cash'],
                         'bank_balance' => $openingBalance['bank'],
                     ]
@@ -107,12 +111,12 @@ class OpeningBalanceService
 
             return [
                 'success' => true,
-                'message' => 'Opening balances recalculated from ' . $startDate,
+                'message' => 'Opening balances recalculated from '.$startDate,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Error recalculating balances from ' . $startDate . ': ' . $e->getMessage(),
+                'message' => 'Error recalculating balances from '.$startDate.': '.$e->getMessage(),
             ];
         }
     }
@@ -154,8 +158,8 @@ class OpeningBalanceService
 
         // Return the total net balance for cash and bank, and the sum of both
         return [
-            'cash'  => $cashBalance,
-            'bank'  => $bankBalance,
+            'cash' => $cashBalance,
+            'bank' => $bankBalance,
             'total' => ($cashBalance + $bankBalance),
         ];
     }

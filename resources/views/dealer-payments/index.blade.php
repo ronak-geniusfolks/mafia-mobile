@@ -227,11 +227,11 @@
         word-wrap: break-word;
         overflow-wrap: break-word;
     }
-    
+
     #dealerPaymentsTable tbody tr:hover {
         background-color: #f8f9fa;
     }
-    
+
     /* Disable horizontal scroll on desktop/laptop screens */
     @media screen and (min-width: 992px) {
         .table-responsive {
@@ -241,7 +241,7 @@
             table-layout: auto;
         }
     }
-    
+
     /* Enable horizontal scroll only on tablet and mobile */
     @media screen and (max-width: 991px) {
         .table-responsive {
@@ -249,7 +249,7 @@
             -webkit-overflow-scrolling: touch;
         }
     }
-    
+
     /* Mobile responsive improvements */
     @media screen and (max-width: 767px) {
         #dealerPaymentsTable thead th {
@@ -258,24 +258,24 @@
             white-space: normal;
             line-height: 1.2;
         }
-        
+
         #dealerPaymentsTable tbody td {
             font-size: 0.85rem;
             padding: 0.5rem 0.25rem;
         }
-        
+
         /* Hide less important columns on mobile */
         #dealerPaymentsTable tbody tr.child td.dtr-control::before {
             margin-right: 0.5rem;
         }
-        
+
         /* Improve button sizing on mobile */
         #dealerPaymentsTable tbody td .btn-sm {
             padding: 0.25rem 0.5rem;
             font-size: 0.75rem;
         }
     }
-    
+
     /* Tablet responsive improvements */
     @media screen and (min-width: 768px) and (max-width: 991px) {
         #dealerPaymentsTable tbody td .btn-sm {
@@ -714,14 +714,14 @@
                         width: '5%',
                         responsivePriority: 1
                     },
-                    { 
-                        data: 'name', 
+                    {
+                        data: 'name',
                         name: 'name',
                         width: '15%',
                         responsivePriority: 1
                     },
-                    { 
-                        data: 'contact_number', 
+                    {
+                        data: 'contact_number',
                         name: 'contact_number',
                         width: '12%',
                         responsivePriority: 2,
@@ -841,7 +841,7 @@
                                 res.bills.forEach(function(bill, index) {
                                     const billId = 'bill-' + bill.id;
                                     billsHtml += '<div class="bill-accordion">';
-                                    
+
                                     // Accordion Header
                                     billsHtml += '<div class="bill-accordion-header" data-toggle="accordion" data-target="#' + billId + '">';
                                     billsHtml += '<div class="bill-header-info">';
@@ -855,10 +855,10 @@
                                     billsHtml += '</div>';
                                     billsHtml += '</div>';
                                     billsHtml += '</div>';
-                                    
+
                                     // Accordion Body
                                     billsHtml += '<div class="bill-accordion-body" id="' + billId + '">';
-                                    
+
                                     // Bill Summary
                                     // billsHtml += '<div class="bill-summary">';
                                     // billsHtml += '<div class="summary-item">';
@@ -878,7 +878,7 @@
                                     // billsHtml += '<span class="summary-value text-danger">' + '{{ config('constant.currency') }} ' + parseFloat(bill.remaining_amount).toFixed(2) + '</span>';
                                     // billsHtml += '</div>';
                                     // billsHtml += '</div>';
-                                    
+
                                     // Payment Rows
                                     if (bill.payments && bill.payments.length > 0) {
                                         billsHtml += '<div class="bill-details-section">';
@@ -889,7 +889,7 @@
                                         billsHtml += '<div>Type</div>';
                                         billsHtml += '<div>Note</div>';
                                         billsHtml += '</div>';
-                                        
+
                                         bill.payments.forEach(function(payment, paymentIndex) {
                                             billsHtml += '<div class="payment-row">';
                                             billsHtml += '<div data-label="Date">' + payment.payment_date + '</div>';
@@ -904,7 +904,7 @@
                                         billsHtml += '<div class="no-payments">No payments made yet</div>';
                                         billsHtml += '</div>';
                                     }
-                                    
+
                                     billsHtml += '</div>'; // Close accordion body
                                     billsHtml += '</div>'; // Close accordion
                                 });
@@ -912,7 +912,7 @@
                                 billsHtml = '<div class="text-center text-muted p-4">No pending bills</div>';
                             }
                             $('#pendingBillsList').html(billsHtml);
-                            
+
                             // Initialize accordion click handlers
                             initializeAccordion();
 
@@ -1027,10 +1027,10 @@
                     const target = $(this).data('target');
                     const accordionBody = $(target);
                     const accordionHeader = $(this);
-                    
+
                     // Toggle active class
                     accordionHeader.toggleClass('active');
-                    
+
                     // Toggle body visibility
                     if (accordionBody.hasClass('show')) {
                         accordionBody.removeClass('show').slideUp(300);
@@ -1038,7 +1038,7 @@
                         // Close all other accordions (optional - remove if you want multiple open)
                         $('.bill-accordion-body').removeClass('show').slideUp(300);
                         $('.bill-accordion-header').removeClass('active');
-                        
+
                         // Open clicked accordion
                         accordionHeader.addClass('active');
                         accordionBody.addClass('show').slideDown(300);

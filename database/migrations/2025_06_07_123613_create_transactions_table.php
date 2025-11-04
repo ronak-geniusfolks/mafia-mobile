@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -21,9 +23,9 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->foreign('payment_method')
-                  ->references('id')
-                  ->on('payment_methods')
-                  ->onDelete('set null');
+                ->references('id')
+                ->on('payment_methods')
+                ->onDelete('set null');
         });
     }
 

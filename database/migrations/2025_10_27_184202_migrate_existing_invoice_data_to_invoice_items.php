@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
@@ -20,9 +22,9 @@ return new class extends Migration
         foreach ($invoices as $invoice) {
             // Get the purchase to calculate unit price
             $purchase = DB::table('purchases')->where('id', $invoice->item_id)->first();
-            
+
             $unitPrice = $invoice->total_amount ?? 0;
-            
+
             // Calculate profit if purchase exists
             $profit = 0;
             if ($purchase && isset($purchase->purchase_price)) {

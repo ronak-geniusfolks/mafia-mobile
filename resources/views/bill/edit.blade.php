@@ -139,7 +139,7 @@
                                     <input type="number" class="form-control form-control-sm" name="discount_amount" id="discAmount" min="0" value="{{ $bill->discount ?? 0 }}">
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="bg-light p-3 rounded shadow-sm">
+                                    <div class="bg-light p-3 mt-2 rounded shadow-sm">
                                         <ul class="mb-0 list-unstyled small">
                                             <li><b>Total Amount:</b> ₹ <span id="totalAmountDisplay">{{ $bill->total_amount ?? 0 }}</span></li>
                                             <li><b>Discount:</b> ₹ <span id="discountAmountDisplay">{{ $bill->discount ?? 0 }}</span></li>

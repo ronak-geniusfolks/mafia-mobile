@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
 use App\Models\Transaction;
@@ -23,4 +25,4 @@ class ObserverServiceProvider extends ServiceProvider
     {
         Transaction::observe(TransactionObserver::class);
     }
-} 
+}

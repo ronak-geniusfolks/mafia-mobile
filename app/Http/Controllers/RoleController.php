@@ -1,7 +1,11 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Services\JsonService;
+use Exception;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -16,6 +20,7 @@ class RoleController extends Controller
     {
         $this->jsonService = new JsonService();
     }
+
     public function index()
     {
         if (request()->ajax()) {
@@ -31,6 +36,7 @@ class RoleController extends Controller
         }
 
         $permissions = Permission::all();
+
         return view('roles.index', compact('permissions'));
     }
 
@@ -44,7 +50,7 @@ class RoleController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|unique:roles,name,' . $request->id,
+            'name' => 'required|unique:roles,name,'.$request->id,
         ]);
 
         $newPermissions = array_filter($request->new_permissions ?? []);
@@ -66,17 +72,17 @@ class RoleController extends Controller
                 'Role updated successfully!',
                 Response::HTTP_OK
             );
-        } else {
-            $role = Role::create(['name' => $request->name]);
-            $role->syncPermissions($allPermissions);
-
-            return $this->jsonService->sendResponse(
-                true,
-                null,
-                'Role created successfully!',
-                Response::HTTP_CREATED
-            );
         }
+        $role = Role::create(['name' => $request->name]);
+        $role->syncPermissions($allPermissions);
+
+        return $this->jsonService->sendResponse(
+            true,
+            null,
+            'Role created successfully!',
+            Response::HTTP_CREATED
+        );
+
     }
 
     public function edit($id)
@@ -87,14 +93,14 @@ class RoleController extends Controller
             return $this->jsonService->sendResponse(
                 true,
                 [
-                    'id'          => $role->id,
-                    'name'        => $role->name,
+                    'id' => $role->id,
+                    'name' => $role->name,
                     'permissions' => $role->permissions->pluck('name'),
                 ],
                 'Role fetched successfully',
                 Response::HTTP_OK
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->jsonService->sendResponse(
                 false,
                 null,
@@ -116,7 +122,7 @@ class RoleController extends Controller
                 'Role deleted successfully!',
                 Response::HTTP_OK
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->jsonService->sendResponse(
                 false,
                 null,
