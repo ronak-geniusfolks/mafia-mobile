@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use App\Models\User;
@@ -15,9 +18,9 @@ class SuperAdminSeeder extends Seeder
         $admin = User::firstOrCreate(
             ['email' => 'mafiamobile36@gmail.com'],
             [
-                'name'      => 'Mafia Mobile',
+                'name' => 'Mafia Mobile',
                 'user_name' => 'mafia_mobile',
-                'password'  => Hash::make('Mafia.mobile.2025'), // Make sure to update in prod
+                'password' => Hash::make('Mafia.mobile.2025'), // Make sure to update in prod
             ]
         );
 

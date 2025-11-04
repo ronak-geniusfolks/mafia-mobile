@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
-use App\Models\Dealer;
 use App\Http\Requests\StoreDealerRequest;
 use App\Http\Requests\UpdateDealerRequest;
+use App\Models\Dealer;
+use Exception;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -36,12 +39,12 @@ class DealerController extends Controller
             $dealer = Dealer::create($request->validated());
 
             return response()->json([
-                'status'  => true,
+                'status' => true,
                 'message' => 'Dealer created successfully!',
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'An error occurred while creating the dealer.',
             ], 500);
         }
@@ -57,17 +60,17 @@ class DealerController extends Controller
             $dealer->update($request->validated());
 
             return response()->json([
-                'status'  => true,
+                'status' => true,
                 'message' => 'Dealer updated successfully!',
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Dealer not found',
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'An error occurred while updating the dealer.',
             ], 500);
         }
@@ -82,20 +85,20 @@ class DealerController extends Controller
             $dealer = Dealer::findOrFail($id);
 
             return response()->json([
-                'status'  => true,
-                'data'    => $dealer->toArray(),
+                'status' => true,
+                'data' => $dealer->toArray(),
                 'message' => 'Dealer fetched successfully',
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
-                'status'  => false,
-                'data'    => null,
+                'status' => false,
+                'data' => null,
                 'message' => 'Dealer not found',
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
-                'status'  => false,
-                'data'    => null,
+                'status' => false,
+                'data' => null,
                 'message' => 'An error occurred while fetching the dealer.',
             ], 500);
         }
@@ -111,17 +114,17 @@ class DealerController extends Controller
             $dealer->delete();
 
             return response()->json([
-                'status'  => true,
+                'status' => true,
                 'message' => 'Dealer deleted successfully!',
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Dealer not found',
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Failed to delete dealer',
             ], 500);
         }

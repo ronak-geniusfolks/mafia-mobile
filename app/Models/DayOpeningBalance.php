@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -13,8 +16,8 @@ class DayOpeningBalance extends Model
     ];
 
     protected $casts = [
-        'date'         => 'date',
-        'balance'      => 'decimal:2',
+        'date' => 'date',
+        'balance' => 'decimal:2',
         'cash_balance' => 'decimal:2',
         'bank_balance' => 'decimal:2',
 

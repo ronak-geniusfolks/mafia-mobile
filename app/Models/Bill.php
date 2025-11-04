@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -50,6 +52,7 @@ class Bill extends Model
     public function getRemainingAmountAttribute()
     {
         $paidAmount = $this->paid_amount ?? 0;
+
         return max(0, $this->credit_amount - $paidAmount);
     }
 
