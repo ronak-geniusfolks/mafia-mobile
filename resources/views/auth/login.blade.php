@@ -9,12 +9,12 @@
     <meta content="Coderthemes" name="author" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <!-- App favicon -->
-    <link rel="shortcut icon" href="{{ asset('assets/images/new_logo/')}}">
+    <link rel="shortcut icon" href="{{ asset('assets/images/new_logo/main_logo.png')}}">
     <!-- App css -->
     <link href="{{ asset('assets/css/bootstrap.min.css')}}" rel="stylesheet" type="text/css"
         id="bs-default-stylesheet" />
     <link href="{{ asset('assets/css/app.min.css')}}" rel="stylesheet" type="text/css" id="app-default-stylesheet" />
-    
+
     <!-- Theme overrides -->
     <link href="{{ asset('assets/css/theme-overrides.css')}}" rel="stylesheet" type="text/css" />
 
