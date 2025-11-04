@@ -32,9 +32,8 @@ class DashboardController extends Controller
 
         // Build the base query with eager loading to avoid N+1
         $base = Invoice::with([
-            'invoiceItems.purchase', // we’ll show purchase details per item
-        ])
-            ->notDeleted();
+            'items.purchase', // we’ll show purchase details per item
+        ])->notDeleted();
 
         // Apply time filter
         $invoices = match ($filter) {
