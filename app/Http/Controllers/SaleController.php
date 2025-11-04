@@ -102,8 +102,8 @@ class SaleController extends Controller
     public function deleteSale($id)
     {
         $sale = Invoice::findOrFail($id)->update(['deleted' => 1]);
-        $stockId = Invoice::findOrFail($id)->item_id;
-        Purchase::findOrFail($stockId)->update(['is_sold' => 0]); // Update stock available
+        $stockIds = Invoice::with('items')->findOrFail($id)->items->pluck('item_id');
+        Purchase::whereIn('id', $stockIds)->update(['is_sold' => 0]); // Update stock available
 
         return redirect()->route('allsales')->withStatus('Sale Deleted Successfully..');
     }
