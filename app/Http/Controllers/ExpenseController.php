@@ -10,34 +10,48 @@ class ExpenseController extends Controller
 {
     public function index(Request $request)
     {
-        $month = $request->input('month');
-        $year = $request->input('year');
-        $currentMonth = Carbon::now()->format('F');
-        $query = Expense::where('deleted', 0)->orderBy('entrydate', 'desc');
-        if ($month || $year) {
-            // Convert month name to number
-            $monthNumber = Carbon::parse("1 $month")->month;
-            $startOfMonth = Carbon::create($year, $monthNumber, 1)->startOfMonth();
-            $endOfMonth = Carbon::create($year, $monthNumber, 1)->endOfMonth();
-            $totalExpenseAmount = Expense::whereBetween('entrydate', [$startOfMonth, $endOfMonth])
-                ->where('deleted', 0)->sum('amount');
-            $query->whereBetween('entrydate', [$startOfMonth, $endOfMonth]);
+        // Validate (year optional, month can be 1–12 or full month name)
+        $request->validate([
+            'year'  => ['nullable','integer','min:1970','max:'.now()->year],
+            'month' => ['nullable', function ($attr, $value, $fail) {
+                if (is_null($value)) return;
+                if (is_numeric($value) && (int)$value >= 1 && (int)$value <= 12) return;
+                try { Carbon::parse("1 $value"); } catch (\Exception $e) { $fail('Invalid month.'); }
+            }],
+        ]);
 
-            $expenses = Expense::whereBetween('entrydate', [$startOfMonth, $endOfMonth])
-                ->where('deleted', 0)
-                ->get();
-        } else {
-            $startOfMonth = Carbon::now()->startOfMonth()->toDateTimeString();
-            $endOfMonth = Carbon::now()->endOfMonth()->toDateTimeString();
-            $totalExpenseAmount = Expense::whereBetween('entrydate', [$startOfMonth, $endOfMonth])
-                ->where('deleted', 0)->sum('amount');
-            $expenses = Expense::where('deleted', 0)->orderBy('entrydate', 'desc')->get();
-        }
+        // Defaults to current month/year if not provided
+        $yearInput  = (int)($request->input('year') ?? now()->year);
+        $monthInput = $request->input('month') ?? now()->format('F');
+
+        // Normalize month to number (1–12)
+        $monthNum = is_numeric($monthInput)
+            ? (int)$monthInput
+            : Carbon::parse("1 $monthInput")->month;
+
+        // Calculate range once
+        $start = Carbon::createFromDate($yearInput, $monthNum, 1)->startOfMonth();
+        $end   = (clone $start)->endOfMonth();
+
+        // Base query (DRY)
+        $base = Expense::query()
+            ->where('deleted', 0)                 // consider SoftDeletes long-term
+            ->whereBetween('entrydate', [$start, $end]);
+
+        // Reuse the base query
+        $totalExpenseAmount = (clone $base)->sum('amount');
+
+        // Prefer pagination for large datasets
+        $expenses = (clone $base)
+            ->orderByDesc('entrydate')
+            ->orderByDesc('id')                   // stable tie-breaker
+            ->paginate(50)                        // ->get() if you need all
+            ->withQueryString();
 
         return view('expenses.index', [
-            'expenses' => $expenses,
-            'year' => $year ?? date('Y'),
-            'month' => $month ?? date('F'),
+            'expenses'           => $expenses,
+            'year'               => $yearInput,
+            'month'              => $start->format('F'),
             'totalExpenseAmount' => number_format($totalExpenseAmount, 2, '.', ''),
         ]);
     }
