@@ -92,7 +92,7 @@
                                 <div class="col-md-3">
                                     <label class="form-label fw-semibold" for="customer_no">Contact No <span class="text-danger">*</span>
                                         <span class="pl-2">
-                                            <input type="checkbox" name="customer_no_sync" id="customer_no_sync">
+                                            <input type="checkbox" name="customer_no_sync" checked id="customer_no_sync">
                                             <label class="pl-1 mb-0">Sync with phone?</label>
                                         </span>
                                     </label>

@@ -159,14 +159,13 @@
                                 <tbody>
                                     @foreach($todaysSales as $key => $sale)
                                         <tr>
-                                            <td><a
-                                                    href="{{route('saledetail', $sale->id)}}"><b>#{{ ($todaysSales->currentPage() - 1) * $todaysSales->perPage() + $key + 1 }}</b></a>
+                                            <td><a href="{{route('saledetail', $sale->id)}}"><b>#{{ ($todaysSales->currentPage() - 1) * $todaysSales->perPage() + $key + 1 }}</b></a>
                                             </td>
                                             <td>
-                                                @if($sale->invoiceItems->isEmpty())
+                                                @if($sale->items->isEmpty())
                                                     <em>No items</em>
                                                 @else
-                                                    @foreach ($sale->invoiceItems as $idx => $item)
+                                                    @foreach ($sale->items as $idx => $item)
                                                         @php
                                                             $p = $item->purchase; // can be null if the record was detached later
                                                         @endphp
@@ -176,7 +175,7 @@
                                                             <div><strong>Storage:</strong> {{ $p->storage ?? '-' }}</div>
                                                             <div><strong>IMEI:</strong> {{ $p->imei ?? '-' }}</div>
                                                             <div><strong>Qty:</strong> {{ $item->qty ?? 1 }}</div>
-                                                            @if($idx < $sale->invoiceItems->count() - 1)
+                                                            @if($idx < $sale->items->count() - 1)
                                                                 <hr class="my-2">
                                                             @endif
                                                         </div>
