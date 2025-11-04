@@ -310,8 +310,12 @@ class ReportController extends Controller
         $allSales = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])
             ->where('deleted', 0)
             ->orderBy('created_at', 'desc')->get();
+        // left join invoice items table with invoice table and date should be between start of month and end of month
+        $totalProfitAmount = InvoiceItem::leftJoin('invoices', 'invoice_items.invoice_id', '=', 'invoices.id')
+            ->whereBetween('invoice_date', [$startOfMonth, $endOfMonth])
+            ->where('invoices.deleted', 0)
+            ->sum('profit');
         $totalSalesAmount = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])->where('deleted', 0)->sum('net_amount');
-        $totalProfitAmount = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])->where('deleted', 0)->sum('profit');
         $timePeriod = Carbon::now()->format('F');
 
         // json_encode($allSales);
@@ -323,7 +327,7 @@ class ReportController extends Controller
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now();  // today's date)
         $uniqueCustomers = Invoice::where('deleted', 0)
-            ->select('customer_name', 'customer_no')
+            ->select('customer_name', 'customer_no', 'created_at')
             ->distinct()
             ->orderBy('created_at', 'desc')->get();
 

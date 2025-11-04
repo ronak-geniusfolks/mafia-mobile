@@ -44,7 +44,7 @@ class StoreDealerRequest extends FormRequest
     {
         return [
             'name'           => 'required|string|max:255|min:2|unique:dealers,name',
-            'contact_number' => 'required|string|max:20|min:10|unique:dealers,contact_number',
+            'contact_number' => 'nullable|string|max:20|min:10|unique:dealers,contact_number',
             'address'        => 'nullable|string|max:500',
         ];
     }
@@ -62,7 +62,6 @@ class StoreDealerRequest extends FormRequest
             'name.min'                => 'The dealer name must be at least 2 characters.',
             'name.max'                => 'The dealer name may not be greater than 255 characters.',
             'name.unique'             => 'This dealer name already exists. Please choose a different name.',
-            'contact_number.required' => 'The contact number field is required.',
             'contact_number.string'   => 'The contact number must be a valid text.',
             'contact_number.min'      => 'The contact number must be at least 10 characters.',
             'contact_number.max'       => 'The contact number may not be greater than 20 characters.',

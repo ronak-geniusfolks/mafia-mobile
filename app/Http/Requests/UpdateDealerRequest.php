@@ -55,7 +55,7 @@ class UpdateDealerRequest extends FormRequest
                 Rule::unique('dealers', 'name')->ignore($dealerId),
             ],
             'contact_number' => [
-                'required',
+                'nullable',
                 'string',
                 'min:10',
                 'max:20',
@@ -79,7 +79,6 @@ class UpdateDealerRequest extends FormRequest
             'name.min'                => 'The dealer name must be at least 2 characters.',
             'name.max'                => 'The dealer name may not be greater than 255 characters.',
             'name.unique'             => 'This dealer name already exists. Please choose a different name.',
-            'contact_number.required' => 'The contact number field is required.',
             'contact_number.string'   => 'The contact number must be a valid text.',
             'contact_number.min'      => 'The contact number must be at least 10 characters.',
             'contact_number.max'      => 'The contact number may not be greater than 20 characters.',

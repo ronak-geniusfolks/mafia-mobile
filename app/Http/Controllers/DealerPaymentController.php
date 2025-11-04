@@ -124,6 +124,13 @@ class DealerPaymentController extends Controller
             $pendingBills = $dealer->getPendingBills();
 
             $bills = $pendingBills->map(function ($bill) {
+                // Load payments for this bill
+                $payments = $bill->payments()
+                    ->whereNull('deleted_at')
+                    ->orderBy('payment_date', 'asc')
+                    ->orderBy('id', 'asc')
+                    ->get();
+
                 // bill_date is already cast to Carbon in Bill model
                 return [
                     'id'               => $bill->id,
@@ -134,6 +141,15 @@ class DealerPaymentController extends Controller
                     'paid_amount'      => $bill->paid_amount ?? 0,
                     'remaining_amount' => $bill->remaining_amount,
                     'is_fully_paid'    => $bill->isFullyPaid(),
+                    'payments'         => $payments->map(function ($payment) {
+                        return [
+                            'id'            => $payment->id,
+                            'payment_amount' => $payment->payment_amount,
+                            'payment_date'   => $payment->payment_date->format('d/m/Y'),
+                            'payment_type'   => $payment->payment_type,
+                            'note'           => $payment->note ?? '',
+                        ];
+                    }),
                 ];
             });
 
