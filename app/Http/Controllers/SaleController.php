@@ -13,8 +13,6 @@ class SaleController extends Controller
     //
     public function index(Request $request)
     {
-        // $allSales = Sale::where('deleted', 0)->orderBy('saledate', 'desc')->get();
-        // echo $count = Purchase::where('is_sold', 0)->count();
         $search = $request->input('search');
         $year = $request->input('year');
         $sortDirection = $request->input('direction', 'desc');
@@ -22,28 +20,26 @@ class SaleController extends Controller
         $storage = $request->input('storage');
         $paymentType = $request->input('paymentType');
         $allSales = Invoice::query()
-            ->when($search, function ($query, $search): void {
-                $query->where(function ($q) use ($search): void {
-                    $q->where('id', 'like', "%{$search}%")
-                        ->orWhere('item_description', 'like', "%{$search}%")
-                        ->orWhere('customer_name', 'like', "%{$search}%");
+            ->with('items')
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('id', 'like', "%{$search}%")
+                    ->orWhere('customer_name', 'like', "%{$search}%")
+                    ->orWhereHas('items', function ($qi) use ($search) {
+                        $qi->where('item_description', 'like', "%{$search}%");
+                    });
                 });
             })
-            ->when($year, function ($query) use ($year): void {
-                $query->whereYear('created_at', $year);
+            ->when($year, fn ($q) => $q->whereYear('created_at', $year))
+            ->when($storage, function ($q) use ($storage) {
+                // filter by item_description from related items
+                $q->whereHas('items', fn ($qi) => $qi->where('item_description', 'like', "%{$storage}%"));
             })
-            ->when($storage, function ($query) use ($storage): void {
-                $query->where('item_description', 'like', "%{$storage}%");
-            })
-            ->when($paymentType, function ($query) use ($paymentType): void {
-                $query->where('payment_type', $paymentType);
-            })
+            ->when($paymentType, fn ($q) => $q->where('payment_type', $paymentType))
             ->where('deleted', 0)
             ->orderBy('id', $sortDirection)
-            // ->orderBy('net_amount', $netAmoutSort)
             ->paginate(10);
 
-        // $allSales = Invoice::where('deleted', 0)->orderBy('created_at', 'desc')->paginate(10);
         return view('sales.index', [
             'allSales' => $allSales,
             'year' => $year,
@@ -57,9 +53,7 @@ class SaleController extends Controller
 
     public function saleDetail($id)
     {
-        // $sale = Sale::findOrFail($id);
         $sale = Invoice::findOrFail($id);
-        // $purchasePrice = Purchase::findOrFail($sale->item_id)->purchase_price;
         $soldBy = User::findOrFail($sale->invoice_by);
 
         return view('sales.saledetail', ['sale' => $sale, 'soldBy' => $soldBy]);
