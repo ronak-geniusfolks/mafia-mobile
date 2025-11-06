@@ -27,7 +27,7 @@ class StoreDealerRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255|min:2|unique:dealers,name',
-            'contact_number' => 'nullable|string|max:20|min:10|unique:dealers,contact_number',
+            'contact_number' => 'nullable|string|max:10|unique:dealers,contact_number',
             'address' => 'nullable|string|max:500',
         ];
     }
