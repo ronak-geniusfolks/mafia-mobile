@@ -1,23 +1,35 @@
 <?php
 
-use Carbon\Carbon;
-use Illuminate\Http\Request;
-use App\Models\{Invoice, Purchase};
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\PasswordController;
-use App\Http\Controllers\Auth\NewPasswordController;
-use App\Http\Controllers\Auth\VerifyEmailController;
-use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\ConfirmablePasswordController;
+declare(strict_types=1);
+
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
-use App\Http\Controllers\{AdminController, BillController, DealerController, DealerPaymentController, ExpenseController, GoogleContactController, InvoiceController, ProfileController, PurchaseController, ReportController, RoleController, SaleController, TransactionController, UserController};
+use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\PasswordController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\BillController;
+use App\Http\Controllers\DealerController;
+use App\Http\Controllers\DealerPaymentController;
+use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\GoogleContactController;
+use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SaleController;
+use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Route;
 
 // Auth Routes
-Route::get('/', fn() => view('auth.login'));
-Route::get('/home', fn() => view('welcome'));
+Route::get('/', fn () => view('auth.login'));
+Route::get('/home', fn () => view('welcome'));
 
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])->name('register');

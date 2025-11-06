@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Models\Transaction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -21,7 +23,7 @@ class TransactionObserverTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('day_opening_balances', [
-            'date'    => '2024-01-01 00:00:00',
+            'date' => '2024-01-01 00:00:00',
             'balance' => 0, // since there’s no earlier transaction
         ]);
     }
@@ -39,7 +41,7 @@ class TransactionObserverTest extends TestCase
         $transaction->update(['amount' => 1000]);
 
         $this->assertDatabaseHas('day_opening_balances', [
-            'date'    => '2024-01-01 00:00:00',
+            'date' => '2024-01-01 00:00:00',
             'balance' => 0, // still 0 because no previous txn
         ]);
     }
@@ -57,7 +59,7 @@ class TransactionObserverTest extends TestCase
         $txn->delete();
 
         $this->assertDatabaseHas('day_opening_balances', [
-            'date'    => '2024-01-01 00:00:00',
+            'date' => '2024-01-01 00:00:00',
             'balance' => 0,
         ]);
     }

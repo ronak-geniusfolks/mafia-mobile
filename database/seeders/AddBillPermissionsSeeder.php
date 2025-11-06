@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -38,7 +40,7 @@ class AddBillPermissionsSeeder extends Seeder
         if ($superAdminRole) {
             foreach ($billPermissions as $permissionName) {
                 $permission = Permission::where('name', $permissionName)->first();
-                if ($permission && !$superAdminRole->hasPermissionTo($permission)) {
+                if ($permission && ! $superAdminRole->hasPermissionTo($permission)) {
                     $superAdminRole->givePermissionTo($permission);
                     $this->command->info("Permission '{$permissionName}' assigned to super-admin role.");
                 }

@@ -1,8 +1,11 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Providers;
 
-use Google\Client;
 use App\Services\GoogleContactService;
+use Google\Client;
 use Illuminate\Support\ServiceProvider;
 
 class GoogleContactServiceProvider extends ServiceProvider
@@ -14,7 +17,7 @@ class GoogleContactServiceProvider extends ServiceProvider
     {
         $this->app->singleton('GoogleContact', function (): GoogleContactService {
             $client = new Client;
-            $jsonFile = env('APP_ENV') == 'local' ? 'client_secret_local.json' : 'client_secret_prod.json';
+            $jsonFile = env('APP_ENV') === 'local' ? 'client_secret_local.json' : 'client_secret_prod.json';
             $client->setAuthConfig(storage_path($jsonFile)); // Adjusted path
             $client->addScope('https://www.googleapis.com/auth/contacts');
             $client->setRedirectUri(env('GOOGLE_REDIRECT_URI'));

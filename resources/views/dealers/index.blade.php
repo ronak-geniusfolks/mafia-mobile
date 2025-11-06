@@ -30,21 +30,27 @@
         </div>
         <!-- end page title -->
 
-        <div class="card-box shadow-sm">
-            <div class="table-responsive">
-                <table id="dealerTable" class="table table-striped table-bordered table-hover">
-                    <thead class="thead-dark">
-                        <tr>
-                            <th>#</th>
-                            <th>Name</th>
-                            <th>Contact Number</th>
-                            <th>Address</th>
-                            <th>Created At</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="dealerTable" class="table table-centered mb-0">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th class="font-weight-bold">#</th>
+                                        <th class="font-weight-bold">Name</th>
+                                        <th class="font-weight-bold">Contact Number</th>
+                                        <th class="font-weight-bold">Address</th>
+                                        <th class="font-weight-bold">Created At</th>
+                                        <th class="font-weight-bold">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -84,13 +90,13 @@
 
                                 <div class="form-group col-md-12">
                                     <label for="contact_number" class="font-weight-bold">
-                                        Contact Number <span class="text-danger">*</span>
+                                        Contact Number
                                     </label>
                                     <input type="text" 
                                            class="form-control form-control-lg @error('contact_number') is-invalid @enderror" 
                                            id="contact_number" 
                                            name="contact_number" 
-                                           placeholder="Enter contact number"
+                                           placeholder="Enter contact number (optional)"
                                            autocomplete="off">
                                     @error('contact_number')
                                         <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -129,86 +135,55 @@
 
 @section('css')
 <style>
-    .card-box {
-        border-radius: 10px;
-        background: #fff;
-        padding: 20px;
+    #dealerTable {
+        width: 100% !important;
     }
-
-    #dealerTable thead th {
-        background-color: #343a40;
-        color: #fff;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
-        border: none;
+    #dealerTable td {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
-
-    #dealerTable tbody tr {
-        transition: all 0.3s ease;
-    }
-
-    #dealerTable tbody tr:hover {
-        background-color: #f8f9fa;
-        transform: translateY(-2px);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .modal-content {
-        border-radius: 15px;
-        overflow: hidden;
-    }
-
-    .modal-header {
-        border-bottom: none;
-        padding: 1.5rem;
-    }
-
-    .modal-body {
-        padding: 2rem;
-    }
-
-    .form-control-lg {
-        border-radius: 8px;
-        border: 2px solid #e0e0e0;
-        transition: all 0.3s ease;
-        padding: 0.75rem 1rem;
-    }
-
-    .form-control-lg:focus {
-        border-color: #007bff;
-        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    }
-
-    .btn-lg {
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-
-    .btn-lg:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    }
-
-    .table-responsive {
-        border-radius: 10px;
-        overflow: hidden;
-    }
-
-    @media (max-width: 768px) {
-        .modal-dialog {
-            margin: 10px;
+    
+    /* Disable horizontal scroll on desktop/laptop screens */
+    @media screen and (min-width: 992px) {
+        .table-responsive {
+            overflow-x: visible !important;
         }
-
-        .modal-body {
-            padding: 1rem;
+        #dealerTable {
+            table-layout: auto;
         }
-
-        .form-control-lg {
-            font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    /* Enable horizontal scroll only on tablet and mobile */
+    @media screen and (max-width: 991px) {
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+    }
+    
+    /* Mobile responsive improvements */
+    @media screen and (max-width: 767px) {
+        #dealerTable thead th {
+            font-size: 0.85rem;
+            padding: 0.5rem 0.25rem;
+            white-space: normal;
+            line-height: 1.2;
+        }
+        
+        #dealerTable tbody td {
+            font-size: 0.85rem;
+            padding: 0.5rem 0.25rem;
+        }
+        
+        /* Hide less important columns on mobile */
+        #dealerTable tbody tr.child td.dtr-control::before {
+            margin-right: 0.5rem;
+        }
+        
+        /* Improve button sizing on mobile */
+        #dealerTable tbody td .btn-sm {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.75rem;
         }
     }
 </style>
@@ -222,23 +197,40 @@
                 processing: true,
                 serverSide: true,
                 ajax: "{{ route('dealers.index') }}",
+                autoWidth: false,
+                responsive: true,
                 columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'name', name: 'name' },
-                    { data: 'contact_number', name: 'contact_number' },
+                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, width: '8%', responsivePriority: 1 },
+                    { data: 'name', name: 'name', width: '20%', responsivePriority: 1 },
                     { 
-                        data: 'address', 
-                        name: 'address',
+                        data: 'contact_number', 
+                        name: 'contact_number',
+                        width: '15%',
+                        responsivePriority: 2,
                         render: function(data) {
                             if (!data || data.trim() === '') {
                                 return '<span class="text-muted">-</span>';
                             }
-                            return data.length > 50 ? data.substring(0, 50) + '...' : data;
+                            return '<a href="tel:' + data + '">' + data + '</a>';
+                        }
+                    },
+                    { 
+                        data: 'address', 
+                        name: 'address',
+                        width: '27%',
+                        responsivePriority: 3,
+                        render: function(data) {
+                            if (!data || data.trim() === '') {
+                                return '<span class="text-muted">-</span>';
+                            }
+                            return data.length > 40 ? data.substring(0, 40) + '...' : data;
                         }
                     },
                     {
                         data: 'created_at',
                         name: 'created_at',
+                        width: '15%',
+                        responsivePriority: 4,
                         render: function(data) {
                             return moment(data).format('DD/MM/YYYY HH:mm');
                         }
@@ -249,6 +241,8 @@
                         orderable: false,
                         searchable: false,
                         className: 'text-center',
+                        width: '15%',
+                        responsivePriority: 1,
                         render: function(data, type, row) {
                             return '<button class="btn btn-primary btn-sm edit-dealer mr-2" data-id="' + row.id + '" title="Edit">' +
                                 '<i class="fas fa-edit"></i></button>' +
@@ -259,9 +253,10 @@
                 ],
                 order: [[4, 'desc']],
                 pageLength: 10,
-                responsive: true,
                 language: {
-                    processing: '<div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div>'
+                    processing: '<div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div>',
+                    emptyTable: 'No dealers found',
+                    zeroRecords: 'No matching dealers found'
                 }
             });
 

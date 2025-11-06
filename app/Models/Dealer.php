@@ -1,11 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\DB;
 
 class Dealer extends Model
 {
@@ -79,7 +80,7 @@ class Dealer extends Model
             ->selectRaw('SUM(credit_amount - COALESCE(paid_amount, 0)) as total_remaining')
             ->value('total_remaining');
 
-        return max(0, floatval($result ?? 0));
+        return max(0, (float) ($result ?? 0));
     }
 
     /**

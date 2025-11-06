@@ -1,8 +1,8 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -36,7 +36,7 @@ return new class extends Migration
         if ($superAdminRole) {
             foreach ($billPermissions as $permissionName) {
                 $permission = Permission::where('name', $permissionName)->first();
-                if ($permission && !$superAdminRole->hasPermissionTo($permission)) {
+                if ($permission && ! $superAdminRole->hasPermissionTo($permission)) {
                     $superAdminRole->givePermissionTo($permission);
                 }
             }
@@ -65,7 +65,7 @@ return new class extends Migration
                 $roles = Role::whereHas('permissions', function ($query) use ($permissionName) {
                     $query->where('name', $permissionName);
                 })->get();
-                
+
                 foreach ($roles as $role) {
                     $role->revokePermissionTo($permission);
                 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
@@ -24,10 +26,10 @@ class SaleController extends Controller
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($qq) use ($search) {
                     $qq->where('id', 'like', "%{$search}%")
-                    ->orWhere('customer_name', 'like', "%{$search}%")
-                    ->orWhereHas('items', function ($qi) use ($search) {
-                        $qi->where('item_description', 'like', "%{$search}%");
-                    });
+                        ->orWhere('customer_name', 'like', "%{$search}%")
+                        ->orWhereHas('items', function ($qi) use ($search) {
+                            $qi->where('item_description', 'like', "%{$search}%");
+                        });
                 });
             })
             ->when($year, fn ($q) => $q->whereYear('created_at', $year))
@@ -88,7 +90,7 @@ class SaleController extends Controller
         $sale->saleprice = $request->saleprice;
         $sale->stock_id = $stockData->id;
         Purchase::findOrFail($request->stock_id)->update(['is_sold' => 1]);
-        $profit = floatval($request->saleprice - $stockData->purchase_price);
+        $profit = (float) ($request->saleprice - $stockData->purchase_price);
         $sale->profit = $profit;
         $sale->user_id = $request->userid;
         $sale->imei = $stockData->imei;

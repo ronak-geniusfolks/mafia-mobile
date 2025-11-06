@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -34,7 +36,7 @@ class AddDealerPaymentPermissionsSeeder extends Seeder
         if ($superAdminRole) {
             foreach ($permissions as $permissionName) {
                 $permission = Permission::where('name', $permissionName)->first();
-                if ($permission && !$superAdminRole->hasPermissionTo($permission)) {
+                if ($permission && ! $superAdminRole->hasPermissionTo($permission)) {
                     $superAdminRole->givePermissionTo($permission);
                     $this->command->info("Permission '{$permissionName}' assigned to super-admin role.");
                 }

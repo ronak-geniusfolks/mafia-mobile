@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\User;
@@ -21,21 +24,21 @@ class AdminController extends Controller
     public function updateProfile(Request $request)
     {
         $request->validate([
-            'name'     => 'required',
+            'name' => 'required',
             'username' => 'required',
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'avatar' => 'nullable|image|max:2048', // max 2MB
         ]);
 
         $admin = User::find(Auth::user()->id);
 
-        $admin->name      = $request->name;
+        $admin->name = $request->name;
         $admin->user_name = $request->username;
-        $admin->email     = $request->email;
+        $admin->email = $request->email;
         if ($request->file('avatar')) {
             $file = $request->file('avatar');
 
-            $filename = $admin->id . '-' . time() . '-' . $file->getClientOriginalName();
+            $filename = $admin->id.'-'.time().'-'.$file->getClientOriginalName();
             $file->move(public_path('admin/users/'), $filename);
             $admin->avatar = $filename;
         }
@@ -53,18 +56,18 @@ class AdminController extends Controller
 
     public function newPassword(Request $request)
     {
-        $user      = Auth::user();
+        $user = Auth::user();
         $validator = Validator::make($request->all(), [
-            'password'        => 'required|min:8',
+            'password' => 'required|min:8',
             'currentpassword' => 'required|min:8',
         ]);
         if (! Auth::attempt(['id' => $user->id, 'password' => $request->currentpassword])) {
             return redirect()->back()->withError(_('Current password is wrong!'));
         }
-        if ($request->currentpassword == $request->password) {
+        if ($request->currentpassword === $request->password) {
             return redirect()->back()->withError(_('New password should not be same as current password!'));
         }
-        if ($request->password != $request->password_confirmation) {
+        if ($request->password !== $request->password_confirmation) {
             return redirect()->back()->withError(_('Password and confirm password should be same!'));
         }
 

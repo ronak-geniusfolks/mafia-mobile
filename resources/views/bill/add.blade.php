@@ -180,7 +180,7 @@
                                 </div>
 
                                 <div class="col-md-4">
-                                    <div class="bg-light p-3 rounded shadow-sm">
+                                    <div class="bg-light p-3 mt-2 rounded shadow-sm">
                                         <ul class="mb-0 list-unstyled small">
                                             <li><b>Total Amount:</b> ₹ <span id="totalAmountDisplay">{{ old('total_amount', 0) }}</span></li>
                                             <li><b>Discount:</b> ₹ <span id="discountAmountDisplay">{{ old('discount_amount', 0) }}</span></li>
