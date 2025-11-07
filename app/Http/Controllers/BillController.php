@@ -87,8 +87,8 @@ class BillController extends Controller
             // Calculate payment amounts
             [$cashAmount, $creditAmount] = $this->calculatePaymentAmounts(
                 $request->payment_type,
-                $request->net_amount,
-                $request->cash_amount ?? 0
+                (float) $request->net_amount,
+                (float) ($request->cash_amount ?? 0)
             );
 
             // Create bill
@@ -118,7 +118,7 @@ class BillController extends Controller
 
             // If payment is cash, record the payment
             if ($request->payment_type === 'cash') {
-                $this->recordCashPayment($bill, $request->dealer_id, $request->bill_date);
+                $this->recordCashPayment($bill, (int) $request->dealer_id, $request->bill_date);
             }
 
             // Create bill items and mark purchases as sold - optimized bulk operations
@@ -312,8 +312,8 @@ class BillController extends Controller
             // Calculate payment amounts
             [$cashAmount, $creditAmount] = $this->calculatePaymentAmounts(
                 $request->payment_type,
-                $request->net_amount,
-                $request->cash_amount ?? 0
+                (float) $request->net_amount,
+                (float) ($request->cash_amount ?? 0)
             );
 
             $isPaid = $request->payment_type === 'cash' ? 1 : $bill->is_paid;
@@ -351,7 +351,7 @@ class BillController extends Controller
             if ($request->payment_type === 'cash') {
                 // Delete old payment records for this bill if any
                 // Create new payment record
-                $this->recordCashPayment($bill, $request->dealer_id, $request->bill_date);
+                $this->recordCashPayment($bill, (int) $request->dealer_id, $request->bill_date);
             }
 
             // Create new bill items and mark purchases as sold - optimized bulk operations
@@ -459,7 +459,7 @@ class BillController extends Controller
         $amount_after_decimal = round($amount - ($num = floor($amount)), 2) * 100;
         // Check if there is any number after decimal
         $amt_hundred = null;
-        $count_length = mb_strlen($num);
+        $count_length = mb_strlen((string) $num);
         $x = 0;
         $string = [];
         $change_words = [0 => '', 1 => 'One', 2 => 'Two', 3 => 'Three', 4 => 'Four', 5 => 'Five', 6 => 'Six', 7 => 'Seven', 8 => 'Eight', 9 => 'Nine', 10 => 'Ten', 11 => 'Eleven', 12 => 'Twelve', 13 => 'Thirteen', 14 => 'Fourteen', 15 => 'Fifteen', 16 => 'Sixteen', 17 => 'Seventeen', 18 => 'Eighteen', 19 => 'Nineteen', 20 => 'Twenty', 30 => 'Thirty', 40 => 'Forty', 50 => 'Fifty', 60 => 'Sixty', 70 => 'Seventy', 80 => 'Eighty', 90 => 'Ninety'];
@@ -491,7 +491,7 @@ class BillController extends Controller
     private function generateNextBillNumber(): string
     {
         $currentYear = date('Y');
-        $lastBill = Bill::where('bill_no', 'LIKE', "BL{$currentYear}%")
+        $lastBill = Bill::withTrashed()->where('bill_no', 'LIKE', "BL{$currentYear}%")
             ->orderByRaw('CAST(SUBSTRING(bill_no, -4) AS UNSIGNED) DESC')
             ->first();
 
