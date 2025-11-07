@@ -103,14 +103,14 @@ class ReportController extends Controller
         return view('reports.sales', [
             'allSales' => $allSales,
             'period' => $period,
-            'totalSalesAmount' => number_format($totalSalesAmount, 2, '.', ''),
-            'totalProfitAmount' => number_format($totalProfitAmount, 2, '.', ''),
+            'totalSalesAmount' => number_format((float) $totalSalesAmount, 2, '.', ''),
+            'totalProfitAmount' => number_format((float) $totalProfitAmount, 2, '.', ''),
             'fromdate' => $fromDate,
             'todate' => $toDate,
             'totalItems' => $allSales->total(),
             'currentMonth' => Carbon::now()->format('F'),
             'timePeriod' => $timePeriod,
-            'totalExpenseAmount' => number_format($totalExpenseAmount, 2, '.', ''),
+            'totalExpenseAmount' => number_format((float) $totalExpenseAmount, 2, '.', ''),
         ]);
     }
 
