@@ -24,7 +24,7 @@ class InvoiceController extends Controller
 
     public function index()
     {
-        $allInvoices = Invoice::with('items')->where('deleted', 0)->orderBy('invoice_date', 'desc')->get();
+        $allInvoices = Invoice::with('items')->where('deleted', 0)->orderBy('id', 'desc')->get();
 
         return view('invoice.index', ['allInvoices' => $allInvoices]);
     }
