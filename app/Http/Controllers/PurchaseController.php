@@ -117,8 +117,8 @@ class PurchaseController extends Controller
                         ->orWhere('purchase_from', 'like', "%{$search}%");
                 });
             })
-            ->when(($isSold !== ''), function ($query) use ($isSold): void {
-                if ($isSold === 2) {
+            ->when((!empty($isSold)), function ($query) use ($isSold): void {
+                if ($isSold == 2) {
                     $query->where('is_sold', 0);
                 } else {
                     $query->where('is_sold', 1);
