@@ -111,6 +111,28 @@ class DealerController extends Controller
     {
         try {
             $dealer = Dealer::findOrFail($id);
+
+            // Check if dealer has any connected data
+            $hasBills = $dealer->bills()->exists();
+            $hasPayments = $dealer->payments()->exists();
+
+            if ($hasBills || $hasPayments) {
+                $messages = [];
+                if ($hasBills) {
+                    $messages[] = 'bills';
+                }
+                if ($hasPayments) {
+                    $messages[] = 'payments';
+                }
+
+                $message = 'Cannot delete dealer. This dealer has associated '.implode(' and ', $messages).'. Please remove all associated data before deleting.';
+
+                return response()->json([
+                    'status' => false,
+                    'message' => $message,
+                ], 200);
+            }
+
             $dealer->delete();
 
             return response()->json([

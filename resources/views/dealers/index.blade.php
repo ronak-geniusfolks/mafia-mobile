@@ -478,57 +478,72 @@
                     confirmButtonText: 'Yes, delete it!',
                     cancelButtonText: 'Cancel',
                     reverseButtons: true,
-                    allowOutsideClick: false,
-                    showLoaderOnConfirm: true,
-                    preConfirm: function() {
-                        return new Promise(function(resolve, reject) {
-                            $.ajax({
-                                url: '{{ route("dealers.destroy", ":id") }}'.replace(':id', id),
-                                type: 'DELETE',
-                                data: { 
-                                    _token: '{{ csrf_token() }}'
-                                },
-                                dataType: 'json',
-                                success: function(response) {
-                                    if (response && response.status) {
-                                        resolve(response);
-                                    } else {
-                                        let errorMsg = response.message || 'Failed to delete dealer';
-                                        Swal.showValidationMessage(errorMsg);
-                                        toastr.error(errorMsg, 'Error', {
-                                            timeOut: 5000,
-                                            closeButton: true,
-                                            progressBar: true
-                                        });
-                                        reject(new Error(errorMsg));
-                                    }
-                                },
-                                error: function(xhr) {
-                                    let errorMsg = 'Failed to delete dealer';
-                                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                                        errorMsg = xhr.responseJSON.message;
-                                    } else if (xhr.statusText) {
-                                        errorMsg = xhr.statusText;
-                                    } else if (xhr.status === 0) {
-                                        errorMsg = 'Network error. Please check your connection.';
-                                    }
-                                    Swal.showValidationMessage(errorMsg);
+                    allowOutsideClick: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show loading state
+                        Swal.fire({
+                            title: 'Deleting...',
+                            text: 'Please wait while we delete the dealer',
+                            icon: 'info',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        // Make the delete request
+                        $.ajax({
+                            url: '{{ route("dealers.destroy", ":id") }}'.replace(':id', id),
+                            type: 'DELETE',
+                            data: { 
+                                _token: '{{ csrf_token() }}'
+                            },
+                            dataType: 'json',
+                            success: function(response) {
+                                // Close the loading popup
+                                Swal.close();
+
+                                console.log(response);
+                                
+                                if (response && response.status) {
+                                    // Show success message
+                                    toastr.success(response.message || 'Dealer deleted successfully!');
+                                    // Reload DataTable without page refresh
+                                    $('#dealerTable').DataTable().ajax.reload(null, false);
+                                } else {
+                                    // Show error message
+                                    const errorMsg = response.message || 'Failed to delete dealer';
                                     toastr.error(errorMsg, 'Error', {
                                         timeOut: 5000,
                                         closeButton: true,
                                         progressBar: true
                                     });
-                                    reject(new Error(errorMsg));
                                 }
-                            });
+                            },
+                            error: function(xhr) {
+                                // Close the loading popup
+                                Swal.close();
+                                
+                                let errorMsg = 'Failed to delete dealer';
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    errorMsg = xhr.responseJSON.message;
+                                } else if (xhr.statusText) {
+                                    errorMsg = xhr.statusText;
+                                } else if (xhr.status === 0) {
+                                    errorMsg = 'Network error. Please check your connection.';
+                                }
+                                
+                                // Show error message
+                                toastr.error(errorMsg, 'Error', {
+                                    timeOut: 5000,
+                                    closeButton: true,
+                                    progressBar: true
+                                });
+                            }
                         });
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed && result.value) {
-                        // Show success message
-                        toastr.success(result.value.message || 'Dealer deleted successfully!');
-                        // Reload DataTable without page refresh
-                        $('#dealerTable').DataTable().ajax.reload(null, false);
                     }
                 });
             });

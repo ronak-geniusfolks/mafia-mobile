@@ -491,7 +491,7 @@ class BillController extends Controller
     private function generateNextBillNumber(): string
     {
         $currentYear = date('Y');
-        $lastBill = Bill::where('bill_no', 'LIKE', "BL{$currentYear}%")
+        $lastBill = Bill::withTrashed()->where('bill_no', 'LIKE', "BL{$currentYear}%")
             ->orderByRaw('CAST(SUBSTRING(bill_no, -4) AS UNSIGNED) DESC')
             ->first();
 
