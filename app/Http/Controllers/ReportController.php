@@ -201,7 +201,7 @@ class ReportController extends Controller
                         $purchase->color ?? '',
                         $invoice->customer_name ?? '',
                         $invoice->customer_no ?? '',
-                        $item->sell_price ?? $invoice->net_amount, // prefer per-item price if available
+                        $item->unit_price ?? 0, // prefer per-item price if available
                         $item->profit ?? 0,
                         $invoice->payment_type ?? '',
                     ], ';');
