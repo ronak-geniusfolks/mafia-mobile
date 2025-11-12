@@ -33,11 +33,6 @@ class Invoice extends Model
         return $this->hasMany(InvoiceItem::class);
     }
 
-    public function invoiceItems()
-    {
-        return $this->hasMany(InvoiceItem::class);
-    }
-
     /** Hide deleted rows everywhere you use ->notDeleted() */
     public function scopeNotDeleted($q)
     {

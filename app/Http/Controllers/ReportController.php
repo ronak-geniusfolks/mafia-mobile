@@ -121,85 +121,93 @@ class ReportController extends Controller
     {
         $period = $request->input('period');
         $monthName = Carbon::now()->format('F');
+
+        // Get sales data based on the selected period
         if ($period === 'thismonth') {
             $monthName = Carbon::now()->format('F');
-            $startOfMonth = Carbon::now()->startOfMonth();
-            $endOfMonth = Carbon::now();  // today's date)
-            $salesReport = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])
-                ->where('deleted', 0)
-                ->orderBy('created_at', 'asc')->get();
+            $start = Carbon::now()->startOfMonth();
+            $end = Carbon::now();
         } elseif ($period === 'lastmonth') {
             $monthName = Carbon::now()->subMonth()->format('F');
-            $lastMonthStart = Carbon::now()->subMonth()->startOfMonth();
-            $lastMonthEnd = Carbon::now()->subMonth()->endOfMonth();  // today's date)
-            $salesReport = Invoice::whereBetween('invoice_date', [$lastMonthStart, $lastMonthEnd])
-                ->where('deleted', 0)
-                ->orderBy('created_at', 'asc')->get();
+            $start = Carbon::now()->subMonth()->startOfMonth();
+            $end = Carbon::now()->subMonth()->endOfMonth();
         } elseif ($period === 'thisyear') {
             $monthName = Carbon::now()->format('Y');
-            $startOfYear = Carbon::now()->startOfYear();
-            $endofYear = Carbon::now();
-            $salesReport = Invoice::whereBetween('invoice_date', [$startOfYear, $endofYear])
-                ->where('deleted', 0)
-                ->orderBy('created_at', 'asc')->get();
+            $start = Carbon::now()->startOfYear();
+            $end = Carbon::now();
         } elseif ($period === 'custom') {
-            $fromDate = $request->input('fromdate');
-            $toDate = $request->input('todate');
-            $monthName = date('d-m-Y', time());
-            $endofYear = Carbon::now();
-            $salesReport = Invoice::whereBetween('invoice_date', [$fromDate, $toDate])
-                ->where('deleted', 0)
-                ->orderBy('created_at', 'asc')->get();
+            $from = $request->input('fromdate');
+            $to = $request->input('todate');
+            $monthName = Carbon::parse($from)->format('d-M') . '_to_' . Carbon::parse($to)->format('d-M');
+            $start = $from;
+            $end = $to;
         } else {
-            $salesReport = Invoice::where('deleted', 0)->orderBy('id', 'asc')->get();
+            $start = null;
+            $end = null;
         }
-        $fileName = $monthName.'-sales.csv';
+
+        // Query invoices with relationships eager loaded
+        $query = Invoice::with(['items.purchase'])->where('deleted', 0);
+
+        if ($start && $end) {
+            $query->whereBetween('invoice_date', [$start, $end]);
+        }
+
+        $salesReport = $query->orderBy('created_at', 'asc')->get();
+
+        // Prepare CSV headers
+        $fileName = $monthName . '-sales.csv';
         $headers = [
-            'Content-type' => 'text/csv',
+            'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=$fileName",
             'Pragma' => 'no-cache',
             'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
             'Expires' => '0',
         ];
-        $callback = function () use ($salesReport): void {
+
+        // CSV callback generator
+        $callback = function () use ($salesReport) {
             $file = fopen('php://output', 'w+');
 
-            // Add the CSV header (modify this based on your model)
-            fputcsv($file,
-                [
-                    'ID',
-                    'Invoice No.',
-                    'Sell Date',
-                    'IMEI',
-                    'Model',
-                    'Storage (GB)',
-                    'Color',
-                    'Customer Name',
-                    'Mobile No',
-                    'Sell Price',
-                    'Profit',
-                    'Payment Mode',
-                ],
-                ';'
-            );
+            // CSV header
+            fputcsv($file, [
+                'Sr No',
+                'Invoice No.',
+                'Invoice Date',
+                'IMEI',
+                'Model',
+                'Storage (GB)',
+                'Color',
+                'Customer Name',
+                'Mobile No.',
+                'Sell Price',
+                'Profit',
+                'Payment Mode',
+            ], ';');
 
-            // Add the data rows
-            foreach ($salesReport as $key => $row) {
-                fputcsv($file, [
-                    $key + 1,
-                    $row->invoice_no,
-                    $row->invoice_date,
-                    $row->purchase->imei,
-                    $row->purchase->model,
-                    $row->purchase->storage,
-                    $row->purchase->color,
-                    $row->customer_name,
-                    $row->customer_no,
-                    $row->net_amount,
-                    $row->profit,
-                    $row->payment_type,
-                ], ';');
+            $count = 1;
+
+            foreach ($salesReport as $invoice) {
+                foreach ($invoice->items as $item) {
+                    $purchase = $item->purchase; // Purchase related to this item
+
+                    fputcsv($file, [
+                        $count++,
+                        $invoice->invoice_no,
+                        $invoice->invoice_date ? Carbon::parse($invoice->invoice_date)->format('d-m-Y') : '',
+                        $purchase->imei ?? '',
+                        $purchase->model ?? '',
+                        $purchase->storage ?? '',
+                        $purchase->color ?? '',
+                        $invoice->customer_name ?? '',
+                        $invoice->customer_no ?? '',
+                        $item->unit_price ?? 0, // prefer per-item price if available
+                        $item->profit ?? 0,
+                        $invoice->payment_type ?? '',
+                    ], ';');
+                }
             }
+
             fclose($file);
         };
 
@@ -310,18 +318,12 @@ class ReportController extends Controller
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now();  // today's date)
         $allSales = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])
+            ->with('items')
             ->where('deleted', 0)
             ->orderBy('created_at', 'desc')->get();
-        // left join invoice items table with invoice table and date should be between start of month and end of month
-        $totalProfitAmount = InvoiceItem::leftJoin('invoices', 'invoice_items.invoice_id', '=', 'invoices.id')
-            ->whereBetween('invoice_date', [$startOfMonth, $endOfMonth])
-            ->where('invoices.deleted', 0)
-            ->sum('profit');
-        $totalSalesAmount = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])->where('deleted', 0)->sum('net_amount');
-        $timePeriod = Carbon::now()->format('F');
 
         // json_encode($allSales);
-        return view('reports.saleschart', ['allSales' => json_encode($allSales)]);
+        return view('reports.saleschart', ['allSales' => $allSales]);
     }
 
     public function customers()
