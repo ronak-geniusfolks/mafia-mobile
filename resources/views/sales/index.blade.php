@@ -17,10 +17,6 @@
     <div class="row">
         <div class="col-12">
             <div class="card-box">
-                <a href="{{ route('allinvoices') }}" class="btn btn-sm btn-blue waves-effect waves-light float-right">
-                    <i class="mdi mdi-plus-circle"></i> Add Sale
-                </a>
-
                 <h4 class="header-title mb-4">Manage Sales [{{$totalItems}}]</h4>
                 <form action="{{ route('allsales') }}" method="GET" id="filtersales">
                     <div class="form-row">

@@ -140,6 +140,16 @@ jQuery(document).ready(function () {
             jQuery("#salesreport").submit();
         }
     });
+
+    jQuery("#purchasedownloadperiod").on("change", function (e) {
+        if (jQuery(this).val() == "custom") {
+            $("#fromdate, #todate").show();
+        } else {
+            $("#fromdate, #todate").hide();
+            jQuery("#purchaseexportreport").submit();
+        }
+    });
+
     jQuery("#selectyear, #selectmonth").on("change", function (e) {
         jQuery("#filterexpense").submit();
     });
