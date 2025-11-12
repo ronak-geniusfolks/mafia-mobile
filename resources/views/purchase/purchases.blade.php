@@ -132,8 +132,9 @@
                                             </td>
                                             </td>
                                             <td><span
-                                                    class="badge @if($purchase->is_sold == 1) badge-danger @else badge-success @endif">@if($purchase->is_sold == 1)
-                                                    Sold @else Available @endif</span>
+                                                    class="badge @if($purchase->is_sold == 1) badge-danger @else badge-success @endif">
+                                                    @if($purchase->is_sold == 1) Sold @elseif($purchase->is_sold == 0) Available @else -- @endif
+                                                    </span>
                                             </td>
 
                                             <td>

@@ -56,9 +56,10 @@ class SaleController extends Controller
     public function saleDetail($id)
     {
         $sale = Invoice::findOrFail($id);
+        $totalProfit = $sale->items->sum('profit');
         $soldBy = User::findOrFail($sale->invoice_by);
 
-        return view('sales.saledetail', ['sale' => $sale, 'soldBy' => $soldBy]);
+        return view('sales.saledetail', ['sale' => $sale, 'soldBy' => $soldBy, 'totalProfit' => $totalProfit]);
     }
 
     public function newSale()
