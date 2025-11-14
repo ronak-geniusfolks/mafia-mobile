@@ -131,7 +131,7 @@ class DealerPaymentController extends Controller
         $request->validate([
             'dealer_id' => 'required|integer|exists:dealers,id',
             'payment_amount' => 'required|numeric|min:0.01',
-            'payment_date' => 'required|date',
+            'payment_date' => 'required',
             'payment_type' => 'required|string|in:cash,credit',
             'note' => 'nullable|string|max:1000',
         ]);
