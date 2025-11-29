@@ -6,7 +6,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDealerRequest;
 use App\Http\Requests\UpdateDealerRequest;
+use App\Models\Bill;
 use App\Models\Dealer;
+use App\Models\DealerPayment;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
@@ -149,6 +152,106 @@ class DealerController extends Controller
                 'status' => false,
                 'message' => 'Failed to delete dealer',
             ], 500);
+        }
+    }
+
+    /**
+     * Generate dealer transaction report.
+     */
+    public function report(Request $request, $id)
+    {
+        try {
+            $dealer = Dealer::findOrFail($id);
+            
+            $dateFrom = $request->input('from', Carbon::now()->subDays(30)->format('Y-m-d'));
+            $dateTo = $request->input('to', Carbon::now()->format('Y-m-d'));
+            
+            // Get bills within date range (DEBIT entries) - exclude soft deleted
+            $bills = Bill::where('dealer_id', $dealer->id)
+                ->whereBetween('bill_date', [$dateFrom, $dateTo])
+                ->where('payment_type', 'credit')
+                ->with(['items' => function($query) {
+                    $query->withoutTrashed();
+                }])
+                ->orderBy('bill_date', 'asc')
+                ->orderBy('id', 'asc')
+                ->get();
+            
+            // Get payments within date range (CREDIT entries) - exclude soft deleted
+            $payments = DealerPayment::where('dealer_id', $dealer->id)
+                ->whereBetween('payment_date', [$dateFrom, $dateTo])
+                ->orderBy('payment_date', 'asc')
+                ->orderBy('id', 'asc')
+                ->get();
+            
+            // Combine transactions
+            $transactions = [];
+            
+            // Add bills as DEBIT entries
+            foreach ($bills as $bill) {
+                $notes = [];
+                foreach ($bill->items as $item) {
+                    $notes[] = $item->item_description;
+                }
+                $note = !empty($notes) ? implode(', ', $notes) : 'Bill #' . $bill->bill_no;
+                $note .= ' (' . $dealer->name . ')';
+                
+                $transactions[] = [
+                    'date' => $bill->bill_date,
+                    'type' => 'debit',
+                    'amount' => $bill->credit_amount,
+                    'note' => $note,
+                ];
+            }
+            
+            // Add payments as CREDIT entries
+            foreach ($payments as $payment) {
+                $note = $payment->note ?: 'Transfer';
+                $note .= ' (' . $dealer->name . ')';
+                
+                $transactions[] = [
+                    'date' => $payment->payment_date,
+                    'type' => 'credit',
+                    'amount' => $payment->payment_amount,
+                    'note' => $note,
+                ];
+            }
+            
+            // Sort by date
+            usort($transactions, function ($a, $b) {
+                $dateA = Carbon::parse($a['date']);
+                $dateB = Carbon::parse($b['date']);
+                if ($dateA->eq($dateB)) {
+                    // If same date, debits come before credits
+                    if ($a['type'] === 'debit' && $b['type'] === 'credit') {
+                        return -1;
+                    }
+                    if ($a['type'] === 'credit' && $b['type'] === 'debit') {
+                        return 1;
+                    }
+                    return 0;
+                }
+                return $dateA->lt($dateB) ? -1 : 1;
+            });
+            
+            // Calculate totals
+            $totalDebit = collect($transactions)->where('type', 'debit')->sum('amount');
+            $totalCredit = collect($transactions)->where('type', 'credit')->sum('amount');
+            $balance = $totalDebit - $totalCredit;
+            
+            return view('dealers.report', [
+                'dealer' => $dealer,
+                'transactions' => $transactions,
+                'dateFrom' => Carbon::parse($dateFrom),
+                'dateTo' => Carbon::parse($dateTo),
+                'totalDebit' => $totalDebit,
+                'totalCredit' => $totalCredit,
+                'balance' => $balance,
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            abort(404, 'Dealer not found');
+        } catch (Exception $e) {
+            abort(500, 'An error occurred while generating the report.');
         }
     }
 }

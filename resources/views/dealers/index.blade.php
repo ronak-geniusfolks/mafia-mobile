@@ -130,6 +130,60 @@
                 </div>
             </div>
         </div>
+
+        <!-- Report Date Range Modal -->
+        <div class="modal fade" id="reportDateModal" tabindex="-1" role="dialog" aria-labelledby="reportDateModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-info text-white">
+                        <h5 class="modal-title font-weight-bold">
+                            <i class="fas fa-file-alt mr-2"></i>Generate Dealer Report
+                        </h5>
+                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form id="reportDateForm">
+                        <div class="modal-body p-4">
+                            <div class="form-group">
+                                <label for="dealerNameReport" class="font-weight-bold">Dealer Name</label>
+                                <input type="text" class="form-control" id="dealerNameReport" readonly>
+                            </div>
+                            <input type="hidden" id="dealerIdReport" value="">
+                            <div class="form-group">
+                                <label for="reportDateFrom" class="font-weight-bold">
+                                    From Date <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" 
+                                       class="form-control form-control-lg @error('reportDateFrom') is-invalid @enderror" 
+                                       id="reportDateFrom" 
+                                       name="reportDateFrom" 
+                                       required>
+                            </div>
+                            <div class="form-group">
+                                <label for="reportDateTo" class="font-weight-bold">
+                                    To Date <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" 
+                                       class="form-control form-control-lg @error('reportDateTo') is-invalid @enderror" 
+                                       id="reportDateTo" 
+                                       name="reportDateTo" 
+                                       required>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light border-top">
+                            <button type="button" class="btn btn-secondary btn-lg" data-dismiss="modal">
+                                <i class="fas fa-times mr-1"></i> Cancel
+                            </button>
+                            <button type="submit" class="btn btn-info btn-lg" id="generateReportBtn">
+                                <i class="fas fa-file-alt mr-1"></i> Generate Report
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 @endsection
 
@@ -246,6 +300,8 @@
                         render: function(data, type, row) {
                             return '<button class="btn btn-primary btn-sm edit-dealer mr-2" data-id="' + row.id + '" title="Edit">' +
                                 '<i class="fas fa-edit"></i></button>' +
+                                '<button class="btn btn-info btn-sm view-report mr-2" data-id="' + row.id + '" data-name="' + row.name + '" title="View Report">' +
+                                '<i class="fas fa-file-alt"></i></button>' +
                                 '<button class="btn btn-danger btn-sm delete-dealer" data-id="' + row.id + '" title="Delete">' +
                                 '<i class="fas fa-trash"></i></button>';
                         }
@@ -461,6 +517,60 @@
                         });
                     }
                 });
+            });
+
+            // View Report
+            $(document).on('click', '.view-report', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+                
+                $('#dealerIdReport').val(id);
+                $('#dealerNameReport').val(name);
+                
+                // Set default date range (last 30 days)
+                const today = new Date();
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(today.getDate() - 30);
+                
+                $('#reportDateFrom').val(thirtyDaysAgo.toISOString().split('T')[0]);
+                $('#reportDateTo').val(today.toISOString().split('T')[0]);
+                
+                $('#reportDateModal').modal('show');
+            });
+
+            // Generate Report
+            $('#reportDateForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                const dealerId = $('#dealerIdReport').val();
+                const dateFrom = $('#reportDateFrom').val();
+                const dateTo = $('#reportDateTo').val();
+                
+                if (!dateFrom || !dateTo) {
+                    toastr.error('Please select both from and to dates');
+                    return;
+                }
+                
+                if (dateFrom > dateTo) {
+                    toastr.error('From date cannot be greater than To date');
+                    return;
+                }
+                
+                // Disable submit button
+                const submitBtn = $('#generateReportBtn');
+                const originalHtml = submitBtn.html();
+                submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Generating...');
+                
+                // Open report in new window
+                const reportUrl = '{{ route("dealers.report", ":id") }}'.replace(':id', dealerId) + 
+                                  '?from=' + dateFrom + '&to=' + dateTo;
+                window.open(reportUrl, '_blank');
+                
+                // Re-enable button and close modal
+                setTimeout(function() {
+                    submitBtn.prop('disabled', false).html(originalHtml);
+                    $('#reportDateModal').modal('hide');
+                }, 500);
             });
 
             // Delete dealer
