@@ -38,8 +38,8 @@
 
                  const sumBy = (array, key) =>
                     array.reduce((total, item) => total + item[key], 0);
-                
-                const salesData = {!! $allSales !!};
+
+                const salesData = @json($allSales);
 
                 // Daily Sales Overview
                 const dailySalesData = groupBy(salesData, "invoice_date");
@@ -58,15 +58,14 @@
                 });
 
                 // Profit Analysis
-                // console.log(salesData)
                 const invoiceDates = salesData.map(sale => sale.invoice_date);
                 const netAmounts = salesData.map(sale => sale.net_amount);
 
                 const dailyProfitData = groupBy(salesData, "invoice_date");
                 const dailyProfitDates = Object.keys(dailyProfitData);
 
-                // const dailyRevenue = dailyProfitDates.map(date => sumBy(dailyProfitData[date], "net_amount"));
-                const dailyProfit = dailyProfitDates.map(date => sumBy(dailyProfitData[date], "profit"));
+                const invoiceItems = salesData.map(sale => sale.items);
+                const dailyProfit = dailyProfitDates.map(date => sumBy(invoiceItems.filter(item => item.invoice_date === date), "profit"));
 
                 // Plotly.js Configuration
                 const trace = {
@@ -80,7 +79,6 @@
                     title: 'Daily Profit Analysis',
                     xaxis: { title: 'Invoice Date' },
                     yaxis: { title: 'Profit (₹)' },
-                    // margin: { t: 50, r: 20, b: 80, l: 50 },
                 };
 
                 // Generate the chart
@@ -88,7 +86,6 @@
 
                 const paymentData = groupBy(salesData, "payment_type");
                 const paymentModes = Object.keys(paymentData);
-                console.log(paymentData);
                 const paymentCounts = paymentModes.map(mode => paymentData[mode].length);
 
                 Plotly.newPlot('paymentMode', [{
