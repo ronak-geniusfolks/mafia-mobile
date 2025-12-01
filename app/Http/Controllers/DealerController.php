@@ -162,10 +162,10 @@ class DealerController extends Controller
     {
         try {
             $dealer = Dealer::findOrFail($id);
-            
+
             $dateFrom = $request->input('from', Carbon::now()->subDays(30)->format('Y-m-d'));
             $dateTo = $request->input('to', Carbon::now()->format('Y-m-d'));
-            
+
             // Get bills within date range (DEBIT entries) - exclude soft deleted
             $bills = Bill::where('dealer_id', $dealer->id)
                 ->whereBetween('bill_date', [$dateFrom, $dateTo])
@@ -176,17 +176,17 @@ class DealerController extends Controller
                 ->orderBy('bill_date', 'asc')
                 ->orderBy('id', 'asc')
                 ->get();
-            
+
             // Get payments within date range (CREDIT entries) - exclude soft deleted
             $payments = DealerPayment::where('dealer_id', $dealer->id)
                 ->whereBetween('payment_date', [$dateFrom, $dateTo])
                 ->orderBy('payment_date', 'asc')
                 ->orderBy('id', 'asc')
                 ->get();
-            
+
             // Combine transactions
             $transactions = [];
-            
+
             // Add bills as DEBIT entries
             foreach ($bills as $bill) {
                 $notes = [];
@@ -195,7 +195,7 @@ class DealerController extends Controller
                 }
                 $note = !empty($notes) ? implode(', ', $notes) : 'Bill #' . $bill->bill_no;
                 $note .= ' (' . $dealer->name . ')';
-                
+
                 $transactions[] = [
                     'date' => $bill->bill_date,
                     'type' => 'debit',
@@ -203,12 +203,12 @@ class DealerController extends Controller
                     'note' => $note,
                 ];
             }
-            
+
             // Add payments as CREDIT entries
             foreach ($payments as $payment) {
                 $note = $payment->note ?: 'Transfer';
                 $note .= ' (' . $dealer->name . ')';
-                
+
                 $transactions[] = [
                     'date' => $payment->payment_date,
                     'type' => 'credit',
@@ -216,7 +216,7 @@ class DealerController extends Controller
                     'note' => $note,
                 ];
             }
-            
+
             // Sort by date
             usort($transactions, function ($a, $b) {
                 $dateA = Carbon::parse($a['date']);
@@ -233,12 +233,12 @@ class DealerController extends Controller
                 }
                 return $dateA->lt($dateB) ? -1 : 1;
             });
-            
+
             // Calculate totals
             $totalDebit = collect($transactions)->where('type', 'debit')->sum('amount');
             $totalCredit = collect($transactions)->where('type', 'credit')->sum('amount');
             $balance = $totalDebit - $totalCredit;
-            
+
             return view('dealers.report', [
                 'dealer' => $dealer,
                 'transactions' => $transactions,

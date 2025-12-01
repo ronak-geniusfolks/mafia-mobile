@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{{ asset('assets/images/new_logo/main_logo.png')}}">
     <title>Dealer Report - {{ $dealer->name }}</title>
     <style>
         * {
@@ -10,42 +11,42 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: Arial, sans-serif;
             background: white;
             padding: 20px;
             color: #000;
         }
-        
+
         .report-container {
             max-width: 1200px;
             margin: 0 auto;
             background: white;
         }
-        
+
         .report-title {
             text-align: center;
             font-size: 24px;
             font-weight: bold;
             margin-bottom: 20px;
         }
-        
+
         .report-header {
             display: flex;
             justify-content: space-between;
             margin-bottom: 15px;
             font-size: 14px;
         }
-        
+
         .header-left {
             flex: 1;
         }
-        
+
         .header-right {
             text-align: right;
         }
-        
+
         .balance-display {
             text-align: center;
             font-size: 20px;
@@ -54,86 +55,86 @@
             padding: 10px;
             background: #f5f5f5;
         }
-        
+
         .report-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
             font-size: 14px;
         }
-        
+
         .report-table thead {
             background: #f8f9fa;
         }
-        
+
         .report-table th {
             padding: 12px 8px;
             text-align: left;
             border: 1px solid #ddd;
             font-weight: bold;
         }
-        
+
         .report-table td {
             padding: 10px 8px;
             border: 1px solid #ddd;
         }
-        
+
         .report-table tbody tr:nth-child(even) {
             background: #f9f9f9;
         }
-        
+
         .debit-amount {
             color: #28a745;
             font-weight: 600;
         }
-        
+
         .credit-amount {
             color: #dc3545;
             font-weight: 600;
         }
-        
+
         .total-row {
             font-weight: bold;
             background: #f8f9fa !important;
         }
-        
+
         .total-debit {
             color: #28a745;
         }
-        
+
         .total-credit {
             color: #dc3545;
         }
-        
+
         .notes-column {
             max-width: 400px;
             word-wrap: break-word;
         }
-        
+
         @media print {
             body {
                 padding: 10px;
             }
-            
+
             .no-print {
                 display: none;
             }
-            
+
             .report-table {
                 page-break-inside: auto;
             }
-            
+
             .report-table tr {
                 page-break-inside: avoid;
                 page-break-after: auto;
             }
         }
-        
+
         .print-button {
             margin-bottom: 20px;
             text-align: center;
         }
-        
+
         .btn-print {
             background: #007bff;
             color: white;
@@ -143,7 +144,7 @@
             cursor: pointer;
             font-size: 16px;
         }
-        
+
         .btn-print:hover {
             background: #0056b3;
         }
@@ -156,9 +157,9 @@
                 <i class="fas fa-print"></i> Print Report
             </button>
         </div>
-        
+
         <div class="report-title">Mafia Mobile</div>
-        
+
         <div class="report-header">
             <div class="header-left">
                 <div><strong>Name:</strong> {{ $dealer->name }}</div>
@@ -168,11 +169,11 @@
                 <div><strong>Created On:</strong> {{ now()->format('d-m-Y') }}</div>
             </div>
         </div>
-        
+
         <div class="balance-display">
             Rs. {{ number_format(abs($balance), 2) }}
         </div>
-        
+
         <table class="report-table">
             <thead>
                 <tr>
