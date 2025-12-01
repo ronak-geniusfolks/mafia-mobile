@@ -77,10 +77,10 @@
                                     <label for="name" class="font-weight-bold">
                                         Name <span class="text-danger">*</span>
                                     </label>
-                                    <input type="text" 
-                                           class="form-control form-control-lg @error('name') is-invalid @enderror" 
-                                           id="name" 
-                                           name="name" 
+                                    <input type="text"
+                                           class="form-control form-control-lg @error('name') is-invalid @enderror"
+                                           id="name"
+                                           name="name"
                                            placeholder="Enter dealer name"
                                            autocomplete="off">
                                     @error('name')
@@ -92,10 +92,10 @@
                                     <label for="contact_number" class="font-weight-bold">
                                         Contact Number
                                     </label>
-                                    <input type="text" 
-                                           class="form-control form-control-lg @error('contact_number') is-invalid @enderror" 
-                                           id="contact_number" 
-                                           name="contact_number" 
+                                    <input type="text"
+                                           class="form-control form-control-lg @error('contact_number') is-invalid @enderror"
+                                           id="contact_number"
+                                           name="contact_number"
                                            placeholder="Enter contact number (optional)"
                                            autocomplete="off">
                                     @error('contact_number')
@@ -107,10 +107,10 @@
                                     <label for="address" class="font-weight-bold">
                                         Address
                                     </label>
-                                    <textarea class="form-control @error('address') is-invalid @enderror" 
-                                              id="address" 
-                                              name="address" 
-                                              rows="3" 
+                                    <textarea class="form-control @error('address') is-invalid @enderror"
+                                              id="address"
+                                              name="address"
+                                              rows="3"
                                               placeholder="Enter dealer address (optional)"></textarea>
                                     @error('address')
                                         <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -130,6 +130,60 @@
                 </div>
             </div>
         </div>
+
+        <!-- Report Date Range Modal -->
+        <div class="modal fade" id="reportDateModal" tabindex="-1" role="dialog" aria-labelledby="reportDateModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-info text-white">
+                        <h5 class="modal-title font-weight-bold">
+                            <i class="fas fa-file-alt mr-2"></i>Generate Dealer Report
+                        </h5>
+                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form id="reportDateForm">
+                        <div class="modal-body p-4">
+                            <div class="form-group">
+                                <label for="dealerNameReport" class="font-weight-bold">Dealer Name</label>
+                                <input type="text" class="form-control" id="dealerNameReport" readonly>
+                            </div>
+                            <input type="hidden" id="dealerIdReport" value="">
+                            <div class="form-group">
+                                <label for="reportDateFrom" class="font-weight-bold">
+                                    From Date <span class="text-danger">*</span>
+                                </label>
+                                <input type="date"
+                                       class="form-control form-control-lg @error('reportDateFrom') is-invalid @enderror"
+                                       id="reportDateFrom"
+                                       name="reportDateFrom"
+                                       required>
+                            </div>
+                            <div class="form-group">
+                                <label for="reportDateTo" class="font-weight-bold">
+                                    To Date <span class="text-danger">*</span>
+                                </label>
+                                <input type="date"
+                                       class="form-control form-control-lg @error('reportDateTo') is-invalid @enderror"
+                                       id="reportDateTo"
+                                       name="reportDateTo"
+                                       required>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light border-top">
+                            <button type="button" class="btn btn-secondary btn-lg" data-dismiss="modal">
+                                <i class="fas fa-times mr-1"></i> Cancel
+                            </button>
+                            <button type="submit" class="btn btn-info btn-lg" id="generateReportBtn">
+                                <i class="fas fa-file-alt mr-1"></i> Generate Report
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 @endsection
 
@@ -142,7 +196,7 @@
         word-wrap: break-word;
         overflow-wrap: break-word;
     }
-    
+
     /* Disable horizontal scroll on desktop/laptop screens */
     @media screen and (min-width: 992px) {
         .table-responsive {
@@ -152,7 +206,7 @@
             table-layout: auto;
         }
     }
-    
+
     /* Enable horizontal scroll only on tablet and mobile */
     @media screen and (max-width: 991px) {
         .table-responsive {
@@ -160,7 +214,7 @@
             -webkit-overflow-scrolling: touch;
         }
     }
-    
+
     /* Mobile responsive improvements */
     @media screen and (max-width: 767px) {
         #dealerTable thead th {
@@ -169,17 +223,17 @@
             white-space: normal;
             line-height: 1.2;
         }
-        
+
         #dealerTable tbody td {
             font-size: 0.85rem;
             padding: 0.5rem 0.25rem;
         }
-        
+
         /* Hide less important columns on mobile */
         #dealerTable tbody tr.child td.dtr-control::before {
             margin-right: 0.5rem;
         }
-        
+
         /* Improve button sizing on mobile */
         #dealerTable tbody td .btn-sm {
             padding: 0.2rem 0.4rem;
@@ -202,8 +256,8 @@
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, width: '8%', responsivePriority: 1 },
                     { data: 'name', name: 'name', width: '20%', responsivePriority: 1 },
-                    { 
-                        data: 'contact_number', 
+                    {
+                        data: 'contact_number',
                         name: 'contact_number',
                         width: '15%',
                         responsivePriority: 2,
@@ -214,8 +268,8 @@
                             return '<a href="tel:' + data + '">' + data + '</a>';
                         }
                     },
-                    { 
-                        data: 'address', 
+                    {
+                        data: 'address',
                         name: 'address',
                         width: '27%',
                         responsivePriority: 3,
@@ -246,6 +300,8 @@
                         render: function(data, type, row) {
                             return '<button class="btn btn-primary btn-sm edit-dealer mr-2" data-id="' + row.id + '" title="Edit">' +
                                 '<i class="fas fa-edit"></i></button>' +
+                                '<button class="btn btn-info btn-sm view-report mr-2" data-id="' + row.id + '" data-name="' + row.name + '" title="View Report">' +
+                                '<i class="fas fa-file-alt"></i></button>' +
                                 '<button class="btn btn-danger btn-sm delete-dealer" data-id="' + row.id + '" title="Delete">' +
                                 '<i class="fas fa-trash"></i></button>';
                         }
@@ -265,23 +321,23 @@
                 // Remove any backdrop that might remain
                 $('.modal-backdrop').remove();
                 $('body').removeClass('modal-open').css('padding-right', '');
-                
+
                 // Reset form
                 $('#dealerForm')[0].reset();
                 $('#dealerId').val('');
-                
+
                 // Reset form action and method
                 $('#dealerForm').attr('action', '{{ route('dealers.store') }}');
                 $('#dealerForm input[name="_method"]').val('POST');
-                
+
                 // Reset modal title and button
                 $('#modalTitle').text('Add Dealer');
                 $('#submitBtnText').text('Create Dealer');
                 $('#submitBtn').removeClass('btn-warning').addClass('btn-primary');
-                
+
                 // Reset button HTML and state
                 $('#submitBtn').prop('disabled', false).html('<i class="fas fa-save mr-1"></i> <span id="submitBtnText">Create Dealer</span>');
-                
+
                 // Clear validation errors
                 $('.invalid-feedback').remove();
                 $('.is-invalid').removeClass('is-invalid');
@@ -313,7 +369,7 @@
                     success: function(response) {
                         if (response && response.status) {
                             toastr.success(response.message || 'Dealer saved successfully!');
-                            
+
                             // Reset form
                             form[0].reset();
                             $('#dealerForm').attr('action', '{{ route('dealers.store') }}');
@@ -321,26 +377,26 @@
                             $('#dealerId').val('');
                             $('.invalid-feedback').remove();
                             $('.is-invalid').removeClass('is-invalid');
-                            
+
                             // Reset button state to default "Create Dealer"
                             submitBtn.prop('disabled', false)
                                 .removeClass('btn-warning')
                                 .addClass('btn-primary')
                                 .html('<i class="fas fa-save mr-1"></i> <span id="submitBtnText">Create Dealer</span>');
-                            
+
                             // Reset modal title
                             $('#modalTitle').text('Add Dealer');
                             $('#submitBtnText').text('Create Dealer');
-                            
+
                             // Close modal properly
                             $('#dealerModal').modal('hide');
-                            
+
                             // Remove backdrop manually if needed (as backup)
                             setTimeout(function() {
                                 $('.modal-backdrop').remove();
                                 $('body').removeClass('modal-open').css('padding-right', '');
                             }, 300);
-                            
+
                             // Reload DataTable
                             $('#dealerTable').DataTable().ajax.reload(null, false);
                         } else {
@@ -350,11 +406,11 @@
                     },
                     error: function(xhr) {
                         let errorMsg = 'Something went wrong. Please try again.';
-                        
+
                         // Clear previous errors
                         $('.is-invalid').removeClass('is-invalid');
                         $('.invalid-feedback').remove();
-                        
+
                         // Handle validation errors (422 status)
                         if (xhr.status === 422) {
                             let errors = {};
@@ -370,7 +426,7 @@
                                     console.error('Failed to parse error response', e);
                                 }
                             }
-                            
+
                             if (Object.keys(errors).length > 0) {
                                 // Collect all error messages
                                 const errorMessages = [];
@@ -383,7 +439,7 @@
                                         errorMessages.push(value);
                                     }
                                 });
-                                
+
                                 // Format as HTML list
                                 if (errorMessages.length > 0) {
                                     errorMsg = '<ul style="margin: 0; padding-left: 20px; text-align: left;">';
@@ -398,7 +454,7 @@
                         } else if (xhr.responseJSON && xhr.responseJSON.message) {
                             errorMsg = xhr.responseJSON.message;
                         }
-                        
+
                         // Display error in toast
                         toastr.error(errorMsg, 'Validation Error', {
                             timeOut: 5000,
@@ -406,7 +462,7 @@
                             progressBar: true,
                             escapeHtml: false
                         });
-                        
+
                         submitBtn.prop('disabled', false).html(originalHtml);
                     },
                     complete: function() {
@@ -426,20 +482,20 @@
                     success: function(res) {
                         if (res.status && res.data) {
                             const dealer = res.data;
-                            
+
                             $('#dealerId').val(dealer.id);
                             $('#name').val(dealer.name);
                             $('#contact_number').val(dealer.contact_number);
                             $('#address').val(dealer.address);
-                            
+
                             // Update form action and method for update
                             $('#dealerForm').attr('action', '{{ url('dealers') }}/' + id);
                             $('#dealerForm input[name="_method"]').val('PUT');
-                            
+
                             $('#modalTitle').text('Edit Dealer');
                             $('#submitBtnText').text('Update Dealer');
                             $('#submitBtn').removeClass('btn-primary').addClass('btn-warning');
-                            
+
                             $('#dealerModal').modal('show');
                         } else {
                             toastr.error(res.message || 'Failed to fetch dealer data');
@@ -461,6 +517,60 @@
                         });
                     }
                 });
+            });
+
+            // View Report
+            $(document).on('click', '.view-report', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+
+                $('#dealerIdReport').val(id);
+                $('#dealerNameReport').val(name);
+
+                // Set default date range (last 30 days)
+                const today = new Date();
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(today.getDate() - 30);
+
+                $('#reportDateFrom').val(thirtyDaysAgo.toISOString().split('T')[0]);
+                $('#reportDateTo').val(today.toISOString().split('T')[0]);
+
+                $('#reportDateModal').modal('show');
+            });
+
+            // Generate Report
+            $('#reportDateForm').on('submit', function(e) {
+                e.preventDefault();
+
+                const dealerId = $('#dealerIdReport').val();
+                const dateFrom = $('#reportDateFrom').val();
+                const dateTo = $('#reportDateTo').val();
+
+                if (!dateFrom || !dateTo) {
+                    toastr.error('Please select both from and to dates');
+                    return;
+                }
+
+                if (dateFrom > dateTo) {
+                    toastr.error('From date cannot be greater than To date');
+                    return;
+                }
+
+                // Disable submit button
+                const submitBtn = $('#generateReportBtn');
+                const originalHtml = submitBtn.html();
+                submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Generating...');
+
+                // Open report in new window
+                const reportUrl = '{{ route("dealers.report", ":id") }}'.replace(':id', dealerId) +
+                                  '?from=' + dateFrom + '&to=' + dateTo;
+                window.open(reportUrl, '_blank');
+
+                // Re-enable button and close modal
+                setTimeout(function() {
+                    submitBtn.prop('disabled', false).html(originalHtml);
+                    $('#reportDateModal').modal('hide');
+                }, 500);
             });
 
             // Delete dealer
@@ -498,7 +608,7 @@
                         $.ajax({
                             url: '{{ route("dealers.destroy", ":id") }}'.replace(':id', id),
                             type: 'DELETE',
-                            data: { 
+                            data: {
                                 _token: '{{ csrf_token() }}'
                             },
                             dataType: 'json',
@@ -507,7 +617,7 @@
                                 Swal.close();
 
                                 console.log(response);
-                                
+
                                 if (response && response.status) {
                                     // Show success message
                                     toastr.success(response.message || 'Dealer deleted successfully!');
@@ -526,7 +636,7 @@
                             error: function(xhr) {
                                 // Close the loading popup
                                 Swal.close();
-                                
+
                                 let errorMsg = 'Failed to delete dealer';
                                 if (xhr.responseJSON && xhr.responseJSON.message) {
                                     errorMsg = xhr.responseJSON.message;
@@ -535,7 +645,7 @@
                                 } else if (xhr.status === 0) {
                                     errorMsg = 'Network error. Please check your connection.';
                                 }
-                                
+
                                 // Show error message
                                 toastr.error(errorMsg, 'Error', {
                                     timeOut: 5000,

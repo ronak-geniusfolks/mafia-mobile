@@ -161,6 +161,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dealers/{id}/edit', [DealerController::class, 'edit'])->name('dealers.edit');
     Route::put('/dealers/{id}', [DealerController::class, 'update'])->name('dealers.update');
     Route::delete('/dealers/{id}', [DealerController::class, 'destroy'])->name('dealers.destroy');
+    Route::get('/dealers/{id}/report', [DealerController::class, 'report'])->name('dealers.report');
 });
 
 // Bills
