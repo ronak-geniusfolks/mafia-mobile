@@ -55,10 +55,13 @@
     <div class="container-fluid">
         <!-- start page title -->
         <div class="row">
-            <div class="col-12">
+            <div class="col-6">
                 <div class="page-title-box">
                     <h4 class="page-title font-weight-bold"> EDIT INVOICE : #{{ $invoice->invoice_no }}</h4>
                 </div>
+            </div>
+            <div class="col-6 d-flex justify-content-end align-items-center">
+                <a href="{{ route('allinvoices') }}" class="btn btn-sm btn-success"><i class="mdi mdi-keyboard-backspace"></i> Back</a>
             </div>
         </div>
         <!-- end page title -->

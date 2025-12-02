@@ -216,6 +216,19 @@
         $(document).ready(function () {
             $("#invoicedate").datepicker({ dateFormat: 'dd/mm/yy' });
 
+            // Fetch customer details when contact number is entered
+            $('#customer_no').on('blur', function() {
+                let contactNo = $(this).val().trim();
+
+                // Remove spaces and special characters except digits
+                contactNo = contactNo.replace(/\D/g, '');
+
+                // Only search if contact number is at least 10 digits
+                if (contactNo.length >= 10) {
+                    fetchCustomerByContact(contactNo);
+                }
+            });
+
             const oldItems = @json(old('items', []));
             if (oldItems && Object.keys(oldItems).length > 0) {
                 // Populate rows from old input
@@ -305,6 +318,46 @@
             // Recalculate once on load to sync displays with any old values
             calculateTotals();
         });
+
+        function fetchCustomerByContact(contactNo) {
+            if (!contactNo || contactNo.length < 10) {
+                return;
+            }
+
+            $.ajax({
+                url: `/admin/fetchcustomer/${contactNo}`,
+                type: 'GET',
+                beforeSend: function() {
+                    // Show loading indicator if needed
+                    $('#customer_no').css('border-color', '#007bff');
+                },
+                success: function (data) {
+                    if (data.customer) {
+                        // Populate customer details
+                        $('#customer_name').val(data.customer.customer_name || '');
+                        $('#customer_address').val(data.customer.customer_address || '');
+
+                        // Uncheck the sync with phone checkbox
+                        $('#customer_no_sync').prop('checked', false);
+
+                        // Show success indication
+                        $('#customer_no').css('border-color', '#28a745');
+                        setTimeout(function() {
+                            $('#customer_no').css('border-color', '');
+                        }, 2000);
+                    }
+                },
+                error: function (xhr) {
+                    // Customer not found or error - this is okay, user can continue
+                    $('#customer_no').css('border-color', '');
+
+                    // Only show error if it's not a "not found" error
+                    if (xhr.status !== 404 && xhr.responseJSON && xhr.responseJSON.error) {
+                        console.log('Customer fetch error:', xhr.responseJSON.error);
+                    }
+                }
+            });
+        }
 
         function addItemRow() {
             itemCounter++;

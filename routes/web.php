@@ -96,6 +96,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('admin/sale/delete/{id}', [SaleController::class, 'deleteSale'])->middleware('permission:sales.delete')->name('delete-sale');
     Route::get('/admin/fetchstockdata/{id}', [SaleController::class, 'fetchModelData'])->middleware('permission:sales.fetch.stock')->name('fetchmodeldata');
     Route::get('/admin/fetchstockonimei/{imei}', [InvoiceController::class, 'fetchModelData'])->middleware('permission:sales.fetch.stock')->name('fetchmodeldata');
+    Route::get('/admin/fetchcustomer/{contactNo}', [InvoiceController::class, 'fetchCustomerByContact'])->middleware('permission:invoices.create')->name('fetchcustomer');
 });
 
 // Invoices
