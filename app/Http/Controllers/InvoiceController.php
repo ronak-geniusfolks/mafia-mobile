@@ -218,6 +218,30 @@ class InvoiceController extends Controller
         ]);
     }
 
+    public function fetchCustomerByContact($contactNo)
+    {
+        // Find the most recent invoice for this contact number
+        $invoice = Invoice::where('customer_no', $contactNo)
+            ->where('deleted', 0)
+            ->orderBy('invoice_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if (! $invoice) {
+            return response()->json([
+                'error' => 'No customer found with this contact number',
+            ]);
+        }
+
+        return response()->json([
+            'customer' => [
+                'customer_name' => $invoice->customer_name,
+                'customer_no' => $invoice->customer_no,
+                'customer_address' => $invoice->customer_address,
+            ],
+        ]);
+    }
+
     public function editInvoice($id)
     {
         $invoice = Invoice::with('items.purchase')->findOrFail($id);

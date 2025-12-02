@@ -11,7 +11,6 @@ $currentDate = Carbon::now();
     <div class="container-fluid">
         <div class="col-xl-10 col-lg-10 col-12 mx-auto">
             <div class="card-body">
-
                 {{-- Header Row inside Card --}}
                 <div class="d-flex justify-content-between align-items-center">
                     <h3 class="mb-0 fw-bold text-uppercase" style="letter-spacing: 0.5px;">
