@@ -114,6 +114,7 @@
                                         <option value="Cash" {{ old('payment_type') === 'Cash' ? 'selected' : '' }}>Cash</option>
                                         <option value="Online" {{ old('payment_type') === 'Online' ? 'selected' : '' }}>Online/UPI</option>
                                         <option value="Credit Card" {{ old('payment_type') === 'Credit Card' ? 'selected' : '' }}>Credit Card</option>
+                                        <option value="IDFC Loan" {{ old('payment_type') === 'IDFC Loan' ? 'selected' : '' }}>IDFC Loan</option>
                                     </select>
                                 </div>
 
