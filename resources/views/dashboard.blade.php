@@ -41,15 +41,20 @@
                 <a href="{{ route('allpurchases')}}">
                     <div class="widget-rounded-circle card-box">
                         <div class="row">
-                            <div class="col-6">
+                            <div class="col-4">
                                 <div class="avatar-lg rounded-circle bg-soft-primary border-primary border">
                                     <i class="fe-plus-circle font-22 avatar-title text-primary"></i>
                                 </div>
                             </div>
-                            <div class="col-6">
+                            <div class="col-8">
                                 <div class="text-right">
                                     <h3 class="mt-1"><span data-plugin="counterup">{{ $stocksInHand }}</span></h3>
-                                    <p class="text-muted mb-1 text-truncate">Stocks in Hand </p>
+                                    <p class="text-muted mb-1 text-truncate">
+                                        Stocks in Hand
+                                        @if(in_array('super-admin', Auth::user()->roles->pluck('name')->toArray()))
+                                            [ <span class="text-success" data-plugin="counterup">{{ number_format($stocksInHandAmount, 0, '.', ',') }}</span> ]
+                                        @endif
+                                    </p>
                                 </div>
                             </div>
                         </div> <!-- end row-->

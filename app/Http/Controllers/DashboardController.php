@@ -23,6 +23,7 @@ class DashboardController extends Controller
 
         // KPIs
         $stocksInHand = Purchase::notSold()->count();
+        $stocksInHandAmount = Purchase::where('is_sold', 0)->sum('purchase_price');
         $totalSales = Invoice::whereDate('invoice_date', $today)->notDeleted()->sum('net_amount');
         $currentMonthSales = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])
             ->notDeleted()
@@ -62,6 +63,7 @@ class DashboardController extends Controller
 
         return view('dashboard', [
             'stocksInHand' => $stocksInHand,
+            'stocksInHandAmount' => $stocksInHandAmount,
             'totalSales' => number_format((float) $totalSales, 0, '.', ','),
             'currentMonthSales' => number_format((float) $currentMonthSales, 0, '.', ','),
             'currentMonth' => Carbon::now()->format('F'),
