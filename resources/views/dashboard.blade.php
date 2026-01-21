@@ -202,6 +202,8 @@
                                                     <span class="badge badge-info text-uppercase">{{ $sale->payment_type }}</span>
                                                 @elseif($sale->payment_type == 'Credit Card')
                                                     <span class="badge badge-warning text-uppercase">{{ $sale->payment_type }}</span>
+                                                @elseif($sale->payment_type == 'IDFC Loan')
+                                                    <span class="badge badge-success text-uppercase">{{ $sale->payment_type }}</span>
                                                 @endif
                                             </td>
                                             <td>{{ Carbon\Carbon::parse($sale->invoice_date)->format('d/m/Y') }}</td>

@@ -114,10 +114,9 @@
                                         id="payment_type" required>
                                         <option value="">Select</option>
                                         <option value="Cash" @selected($invoice->payment_type == 'Cash')>Cash</option>
-                                        <option value="Online" @selected($invoice->payment_type == 'Online')>Online/UPI
-                                        </option>
-                                        <option value="Credit Card" @selected($invoice->payment_type == 'Credit Card')>Credit
-                                            Card</option>
+                                        <option value="Online" @selected($invoice->payment_type == 'Online')>Online/UPI</option>
+                                        <option value="Credit Card" @selected($invoice->payment_type == 'Credit Card')>Credit Card</option>
+                                        <option value="IDFC Loan" @selected($invoice->payment_type == 'IDFC Loan')>IDFC Loan</option>
                                     </select>
                                 </div>
 
@@ -236,6 +235,42 @@
 
         $(document).ready(function () {
             $("#invoicedate").datepicker({ dateFormat: 'dd/mm/yy' });
+
+            // Autocomplete customer by contact number (edit invoice)
+            $('#customer_no').autocomplete({
+                minLength: 3,
+                source: function(request, response) {
+                    // Only send digits to the backend
+                    let term = (request.term || '').replace(/\D/g, '');
+                    if (term.length < 3) {
+                        return response([]);
+                    }
+
+                    $.ajax({
+                        url: '{{ route('searchcustomers') }}',
+                        dataType: 'json',
+                        data: { term: term },
+                        success: function (data) {
+                            response(data);
+                        },
+                        error: function () {
+                            response([]);
+                        }
+                    });
+                },
+                focus: function (event, ui) {
+                    // Show the number in the input while navigating suggestions
+                    $('#customer_no').val(ui.item.customer_no);
+                    return false;
+                },
+                select: function (event, ui) {
+                    // When user selects a suggestion, fill all customer fields
+                    $('#customer_no').val(ui.item.customer_no);
+                    $('#customer_name').val(ui.item.customer_name || '');
+                    $('#customer_address').val(ui.item.customer_address || '');
+                    return false;
+                }
+            });
 
             // Load existing items
             existingItems.forEach(function (item) {

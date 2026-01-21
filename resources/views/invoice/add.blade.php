@@ -217,6 +217,44 @@
         $(document).ready(function () {
             $("#invoicedate").datepicker({ dateFormat: 'dd/mm/yy' });
 
+            // Autocomplete customer by contact number
+            $('#customer_no').autocomplete({
+                minLength: 3,
+                source: function(request, response) {
+                    // Only send digits to the backend
+                    let term = (request.term || '').replace(/\D/g, '');
+                    if (term.length < 3) {
+                        return response([]);
+                    }
+
+                    $.ajax({
+                        url: '{{ route('searchcustomers') }}',
+                        dataType: 'json',
+                        data: { term: term },
+                        success: function (data) {
+                            response(data);
+                        },
+                        error: function () {
+                            response([]);
+                        }
+                    });
+                },
+                focus: function (event, ui) {
+                    // Show the number in the input while navigating suggestions
+                    $('#customer_no').val(ui.item.customer_no);
+                    return false;
+                },
+                select: function (event, ui) {
+                    // When user selects a suggestion, fill all customer fields
+                    $('#customer_no').val(ui.item.customer_no);
+                    $('#customer_name').val(ui.item.customer_name || '');
+                    $('#customer_address').val(ui.item.customer_address || '');
+                    // Turn off sync with phone since it's an existing customer
+                    $('#customer_no_sync').prop('checked', false);
+                    return false;
+                }
+            });
+
             // Fetch customer details when contact number is entered
             $('#customer_no').on('blur', function() {
                 let contactNo = $(this).val().trim();
