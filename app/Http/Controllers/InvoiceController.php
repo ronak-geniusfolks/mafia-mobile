@@ -242,6 +242,39 @@ class InvoiceController extends Controller
         ]);
     }
 
+    public function searchCustomers(Request $request)
+    {
+        // Normalize the search term to digits only (mobile number)
+        $term = preg_replace('/\D/', '', (string) $request->get('term', ''));
+
+        if (mb_strlen($term) < 3) {
+            // Require at least 3 digits before searching
+            return response()->json([]);
+        }
+
+        // Get unique customers whose numbers start with the term
+        $customers = Invoice::notDeleted()
+            ->where('customer_no', 'like', $term.'%')
+            ->select('customer_no', 'customer_name', 'customer_address')
+            ->groupBy('customer_no', 'customer_name', 'customer_address')
+            ->orderBy('customer_no')
+            ->limit(10)
+            ->get();
+
+        // Format for jQuery UI autocomplete
+        $results = $customers->map(static function ($customer) {
+            return [
+                'label' => $customer->customer_no.' - '.$customer->customer_name,
+                'value' => $customer->customer_no,
+                'customer_name' => $customer->customer_name,
+                'customer_no' => $customer->customer_no,
+                'customer_address' => $customer->customer_address,
+            ];
+        });
+
+        return response()->json($results);
+    }
+
     public function editInvoice($id)
     {
         $invoice = Invoice::with('items.purchase')->findOrFail($id);

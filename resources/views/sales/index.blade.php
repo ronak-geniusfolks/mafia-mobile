@@ -44,6 +44,7 @@
                                 <option value="Online" @selected($paymentType == 'Online')>Online</option>
                                 <option value="Credit Card" @selected($paymentType == 'Credit Card')>Credit Card</option>
                                 <option value="Cash" @selected($paymentType == 'Cash')>Cash</option>
+                                <option value="IDFC Loan" @selected($paymentType == 'IDFC Loan')>IDFC Loan</option>
                             </select>
                         </div>
                     </div>
@@ -109,6 +110,8 @@
                                             <span class="badge badge-info text-uppercase">{{ $sale->payment_type }}</span>
                                         @elseif($sale->payment_type == 'Credit Card')
                                             <span class="badge badge-warning text-uppercase">{{ $sale->payment_type }}</span>
+                                        @elseif($sale->payment_type == 'IDFC Loan')
+                                            <span class="badge badge-success text-uppercase">{{ $sale->payment_type }}</span>
                                         @endif
                                     </td>
                                     <td>{{ Carbon\Carbon::parse($sale->created_at)->format('d/m/Y') }}</td>
