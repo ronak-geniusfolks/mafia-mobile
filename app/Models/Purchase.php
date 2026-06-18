@@ -21,6 +21,12 @@ class Purchase extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** Attachments (documents) linked to this stock item */
+    public function attachments()
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
+    }
+
     public function scopeNotSold($q)
     {
         return $q->where('is_sold', 0);

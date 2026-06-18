@@ -31,6 +31,7 @@
     <link href="{{ asset('assets/css/icons.min.css') }}" rel="stylesheet" type="text/css" />
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     @yield('css')
+    @stack('styles')
 </head>
 
 <body
@@ -121,6 +122,58 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     @yield('scripts')
+    @stack('scripts')
+
+    {{-- ── Global helpers: vmConfirm + vmToast (SweetAlert2) ───────────────── --}}
+    <style>
+    .vm-swal-popup  { border-radius: 12px !important; font-family: inherit !important; }
+    .vm-swal-title  { font-size: 1.05rem !important; font-weight: 700 !important; }
+    .vm-swal-toast  { border-radius: 8px !important; font-size: 0.9rem !important; }
+    </style>
+    <script>
+    /**
+     * vmConfirm({ title, text, icon, confirmText, cancelText, confirmColor, cancelColor })
+     * Returns a Promise<boolean>
+     */
+    window.vmConfirm = function(opts) {
+        opts = opts || {};
+        return Swal.fire({
+            title:             opts.title       || 'Are you sure?',
+            text:              opts.text        || '',
+            icon:              opts.icon        || 'warning',
+            showCancelButton:  true,
+            confirmButtonText: opts.confirmText || 'Yes, Proceed',
+            cancelButtonText:  opts.cancelText  || 'Cancel',
+            confirmButtonColor: opts.confirmColor || '#dc3545',
+            cancelButtonColor:  opts.cancelColor  || '#6c757d',
+            focusCancel:       true,
+            reverseButtons:    true,
+            customClass: {
+                popup:         'vm-swal-popup',
+                title:         'vm-swal-title',
+                confirmButton: 'vm-swal-confirm',
+                cancelButton:  'vm-swal-cancel',
+            },
+        }).then(function(result) { return result.isConfirmed; });
+    };
+
+    /**
+     * vmToast(message, type)
+     * type: 'success' | 'error' | 'warning' | 'info'
+     */
+    window.vmToast = function(message, type) {
+        Swal.fire({
+            toast:              true,
+            position:           'top-end',
+            icon:               type || 'success',
+            title:              message,
+            showConfirmButton:  false,
+            timer:              3000,
+            timerProgressBar:   true,
+            customClass: { popup: 'vm-swal-toast' },
+        });
+    };
+    </script>
 </footer>
 
 </html>

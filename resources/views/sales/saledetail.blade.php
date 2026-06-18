@@ -138,6 +138,14 @@ $currentDate = Carbon::now();
 
                     </div>
                 </div>
+
+                {{-- ── Customer Documents (Attachments Panel) ──────────────── --}}
+                @include('include.attachments-panel', [
+                    'attachable'     => $sale,
+                    'attachableType' => 'invoice',
+                    'attachableId'   => $sale->id,
+                ])
+
             </div>
         </div>
     </div>
