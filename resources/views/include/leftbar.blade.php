@@ -89,6 +89,17 @@
                     </li>
                 @endcanany
 
+                <!-- Documents Manager -->
+                @can('attachments.view')
+                    <li>
+                        <a href="{{ route('attachments.index') }}"
+                            class="{{ request()->routeIs('attachments.index', 'attachments.export') ? 'active' : '' }}">
+                            <i class="mdi mdi-folder-multiple-outline"></i>
+                            <span>Documents</span>
+                        </a>
+                    </li>
+                @endcan
+
                 <!-- Invoice -->
                 @canany(['invoices.view', 'invoices.create'])
                     <li class="{{ request()->routeIs(['allinvoices', 'newinvoice', 'invoice-detail', 'print-invoice', 'invoice-edit']) ? 'menuitem-active' : '' }}">

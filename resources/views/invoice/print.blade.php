@@ -232,23 +232,32 @@
 
         /* ---------- TERMS & CONDITIONS ---------- */
         .terms-signature-section {
-            display: flex;
-            justify-content: space-between;
+            display: block;
             margin-bottom: 15px;
         }
 
         .terms-box {
-            width: 70%;
-            border: 1px solid #000;
-            padding: 10px;
+            width: 100%;
+            background: #f8f9fb;
+            border-left: 3px solid #444;
+            padding: 10px 14px;
             font-size: 10px;
-            line-height: 1.3;
+            line-height: 1.45;
+            box-sizing: border-box;
+            margin-bottom: 14px;
         }
 
         .terms-header {
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
+        }
+
+        .terms-header h5 {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin: 0;
+            color: #111;
         }
 
         .terms-box ul {
@@ -257,28 +266,30 @@
         }
 
         .terms-box li {
-            margin-bottom: 3px;
+            margin-bottom: 2px;
+            color: #333;
         }
 
         .signature-section {
-            width: 28%;
-            text-align: center;
-            padding-top: 10px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
+            text-align: right;
         }
 
         .signature-text {
-            font-size: 20px;
+            font-size: 14px;
             font-weight: bold;
-            margin-bottom: auto;
+            margin-bottom: 28px;
+            display: block;
         }
 
         .authorized-signatory {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
-            margin-top: auto;
+            border-top: 1px solid #444;
+            display: inline-block;
+            padding-top: 5px;
+            min-width: 160px;
+            text-align: center;
+            color: #333;
         }
 
         /* ---------- FOOTER ---------- */
@@ -522,6 +533,17 @@
                             <li>Once the Invoice is generated, the product shall remain non-returnable and any payment so made shall be Non Refundable.</li>
                             <li>Mafia Mobile as a firm is engaged in Sale/Buy/Exchange of Active Second hand devices. We Declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</li>
                             <li>Value of supply is Determined in accordance to section 15(5) of the central goods and services tax act read with rule 32(5) of "determination of the value of supply "The credit for GST input shall not be available to the buyer if buyer follow the same valuation rule.</li>
+                            <li>All service and support to be provided by Authorized Apple store.</li>
+                            <li>All devices comes with mentioned warranty, which covers hardware malfunction and issues.</li>
+                            <li>Battery health is covered under warranty only in case of "Mandatory Service Required" message.</li>
+                            <li>Older variants which got discontinued comes with minor modifications from company itself, so Mafia Mobile is not liable for those things.</li>
+                            <li>Android comes with no waaranty. Android phones comes with some services providors logo, as they have colboration with companies for free 1 year network.</li>
+                            <li>Mafia Mobile shall not be held liable or responsible for any green line or black dot appearing on any mobile devices.</li>
+                            <li>All our devices are global products. So android has no warranty &amp; if eligible apple product has available mentioned warranty.</li>
+                            <li>All Devices are Pre-Owned. All devices are activated. No warranty on physical &amp; water damage.</li>
+                            <li>If Apple warranty is available on device then Mafia Mobile is not responsible for it.</li>
+                            <li>Rule 32 R.W.S section 15 of CGST Act, 2017</li>
+                            <li>By purchasing our product, you agree that we may post your story on social media.</li>
                         </ul>
                     </div>
                     <div class="signature-section">
