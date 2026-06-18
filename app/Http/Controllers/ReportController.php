@@ -313,17 +313,28 @@ class ReportController extends Controller
     /**
      * display Sales & profit Charts
      */
-    public function displayCharts()
+    public function displayCharts(Request $request)
     {
-        $startOfMonth = Carbon::now()->startOfMonth();
-        $endOfMonth = Carbon::now();  // today's date)
+        $selectedMonth = $request->input('month', Carbon::now()->format('Y-m'));
+
+        try {
+            $startOfMonth = Carbon::createFromFormat('Y-m', $selectedMonth)->startOfMonth();
+            $endOfMonth   = Carbon::createFromFormat('Y-m', $selectedMonth)->endOfMonth();
+        } catch (\Exception $e) {
+            $startOfMonth = Carbon::now()->startOfMonth();
+            $endOfMonth   = Carbon::now()->endOfMonth();
+            $selectedMonth = Carbon::now()->format('Y-m');
+        }
+
         $allSales = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])
             ->with('items')
             ->where('deleted', 0)
-            ->orderBy('created_at', 'desc')->get();
+            ->orderBy('invoice_date', 'asc')->get();
 
-        // json_encode($allSales);
-        return view('reports.saleschart', ['allSales' => $allSales]);
+        return view('reports.saleschart', [
+            'allSales'      => $allSales,
+            'selectedMonth' => $selectedMonth,
+        ]);
     }
 
     public function customers()

@@ -33,6 +33,12 @@ class Invoice extends Model
         return $this->hasMany(InvoiceItem::class);
     }
 
+    /** Attachments (documents) linked to this invoice */
+    public function attachments()
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
+    }
+
     /** Hide deleted rows everywhere you use ->notDeleted() */
     public function scopeNotDeleted($q)
     {

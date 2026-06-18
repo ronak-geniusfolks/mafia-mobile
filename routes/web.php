@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
@@ -187,3 +188,23 @@ Route::middleware(['auth'])->prefix('dealer-payments')->name('dealer-payments.')
     Route::get('/{dealerId}/bills', [DealerPaymentController::class, 'getDealerBills'])->middleware('permission:dealer-payments.view')->name('bills');
     Route::post('/store', [DealerPaymentController::class, 'storePayment'])->middleware('permission:dealer-payments.create')->name('store');
 });
+
+// ─── Attachments ─────────────────────────────────────────────────────────────
+// Authenticated routes (laptop upload / delete / token generation)
+Route::middleware(['auth'])->prefix('attachments')->name('attachments.')->group(function () {
+    Route::post('/store', [AttachmentController::class, 'store'])->name('store');
+    Route::delete('/{id}', [AttachmentController::class, 'destroy'])->name('destroy');
+    Route::get('/token/{type}/{id}', [AttachmentController::class, 'generateToken'])->name('token');
+
+    // Documents Manager (view + export)
+    Route::get('/documents', [AttachmentController::class, 'docIndex'])
+        ->middleware('permission:attachments.view')
+        ->name('index');
+    Route::get('/documents/export', [AttachmentController::class, 'export'])
+        ->middleware('permission:attachments.export')
+        ->name('export');
+});
+
+// Public routes — no login needed (for mobile QR code upload)
+Route::get('/mobile-upload/{token}', [AttachmentController::class, 'mobileUploadPage'])->name('attachments.mobile-upload');
+Route::post('/mobile-upload/{token}', [AttachmentController::class, 'mobileUploadStore'])->name('attachments.mobile-store');
