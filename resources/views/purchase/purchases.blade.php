@@ -354,10 +354,63 @@
     cursor: pointer;
     transition: all 0.15s;
 }
-.action-btn-icon.view   { background: #eef2ff; color: #4f46e5; }
-.action-btn-icon.edit   { background: #fef9ec; color: #d2ad61; }
-.action-btn-icon.delete { background: #fff0f0; color: #dc2626; }
-.action-btn-icon:hover  { filter: brightness(0.92); }
+.action-btn-icon.view     { background: #eef2ff; color: #4f46e5; }
+.action-btn-icon.edit     { background: #fef9ec; color: #d2ad61; }
+.action-btn-icon.delete   { background: #fff0f0; color: #dc2626; }
+.action-btn-icon.locked   { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
+.action-btn-icon:not(.locked):hover { filter: brightness(0.92); }
+
+/* Invoice link badge shown next to lock icon for sold stocks */
+.invoice-link-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: #fdf6ea;
+    color: #b8953f;
+    border: 1px solid #f0d9a0;
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.invoice-link-badge:hover { background: #fef0ca; color: #92740a; text-decoration: none; }
+
+/* Invoice badge on mobile card */
+.stock-card__invoice {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    font-size: 0.78rem;
+}
+.stock-card__invoice a {
+    color: #b8953f;
+    font-weight: 700;
+    text-decoration: none;
+    background: #fdf6ea;
+    border: 1px solid #f0d9a0;
+    border-radius: 6px;
+    padding: 2px 8px;
+}
+.stock-card__invoice a:hover { background: #fef0ca; color: #92740a; }
+
+.btn-card-locked {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: #f3f4f6;
+    color: #9ca3af;
+    border: none;
+    cursor: not-allowed;
+}
 
 /* ══════════════════════════════════════
    MOBILE CARDS (<768px)
@@ -754,11 +807,16 @@
                             @foreach($allPurchases as $purchase)
                             <tr id="row-{{ $purchase->id }}">
                                 @can('purchases.delete')
-                                <td>
+                                <td style="text-align:center;">
+                                    @if($purchase->is_sold == 0)
                                     <input type="checkbox"
                                            class="bulk-checkbox tbl-cb custom-check"
                                            value="{{ $purchase->id }}"
                                            onchange="updateBulkBar(this)">
+                                    @else
+                                    <i class="mdi mdi-lock-outline" style="color:#d1d5db;font-size:0.9rem;"
+                                       title="Sold — delete invoice first"></i>
+                                    @endif
                                 </td>
                                 @endcan
                                 <td>
@@ -815,6 +873,23 @@
                                         </a>
                                         @endif
                                         @can('purchases.delete')
+                                        @if($purchase->is_sold == 1)
+                                            <div style="display:flex;align-items:center;gap:4px;">
+                                                @if($purchase->invoiceItem && $purchase->invoiceItem->invoice)
+                                                <a href="{{ route('invoice-detail', $purchase->invoiceItem->invoice->id) }}"
+                                                   class="invoice-link-badge"
+                                                   title="Go to linked invoice">
+                                                    <i class="mdi mdi-file-document-outline"></i>
+                                                    {{ $purchase->invoiceItem->invoice->invoice_no }}
+                                                </a>
+                                                @endif
+                                                <button type="button" class="action-btn-icon locked"
+                                                        title="Delete linked invoice first to remove this stock"
+                                                        onclick="warnSoldDelete('{{ $purchase->invoiceItem->invoice->invoice_no ?? '' }}')">
+                                                    <i class="mdi mdi-lock-outline"></i>
+                                                </button>
+                                            </div>
+                                        @else
                                         <form method="post" action="{{ route('delete-stock', $purchase->id) }}"
                                               class="d-inline del-form" id="del-tbl-{{ $purchase->id }}">
                                             @csrf @method('DELETE')
@@ -823,6 +898,7 @@
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </form>
+                                        @endif
                                         @endcan
                                     </div>
                                 </td>
@@ -844,10 +920,12 @@
                         <div class="stock-card__header">
                             <div class="stock-card__header-left">
                                 @can('purchases.delete')
+                                @if($purchase->is_sold == 0)
                                 <input type="checkbox"
                                        class="bulk-checkbox card-cb custom-check"
                                        value="{{ $purchase->id }}"
                                        onchange="updateBulkBar(this)">
+                                @endif
                                 @endcan
                                 <div style="min-width:0;">
                                     <div class="stock-card__model">{{ ucfirst($purchase->model) }}</div>
@@ -906,6 +984,17 @@
                                 </div>
                                 @endif
                             </div>
+
+                            {{-- Linked invoice (sold stocks only) --}}
+                            @if($purchase->is_sold && $purchase->invoiceItem && $purchase->invoiceItem->invoice)
+                            <div class="stock-card__invoice">
+                                <i class="mdi mdi-file-document-outline" style="color:#b8953f;"></i>
+                                <span style="color:#6c757d;font-size:0.75rem;">Invoice:</span>
+                                <a href="{{ route('invoice-detail', $purchase->invoiceItem->invoice->id) }}">
+                                    {{ $purchase->invoiceItem->invoice->invoice_no }}
+                                </a>
+                            </div>
+                            @endif
                         </div>
 
                         {{-- Card Footer --}}
@@ -919,6 +1008,13 @@
                             </a>
                             @endif
                             @can('purchases.delete')
+                            @if($purchase->is_sold == 1)
+                                <button type="button" class="btn-card-locked"
+                                        title="Delete linked invoice first"
+                                        onclick="warnSoldDelete('{{ $purchase->invoiceItem->invoice->invoice_no ?? '' }}')">
+                                    <i class="mdi mdi-lock-outline"></i> Locked
+                                </button>
+                            @else
                             <form method="post" action="{{ route('delete-stock', $purchase->id) }}"
                                   class="d-inline del-form" id="del-card-{{ $purchase->id }}">
                                 @csrf @method('DELETE')
@@ -927,6 +1023,7 @@
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
                             </form>
+                            @endif
                             @endcan
                         </div>
 
@@ -1077,6 +1174,20 @@
             ? document.getElementById('del-tbl-' + id)
             : document.getElementById('del-card-' + id);
         if (form) form.submit();
+    }
+
+    /* ── Sold stock lock warning ── */
+    function warnSoldDelete(invoiceNo) {
+        const invoiceMsg = invoiceNo
+            ? ' (Invoice: ' + invoiceNo + ')'
+            : '';
+        vmConfirm({
+            title:       'Stock is Sold',
+            text:        'This stock is linked to an invoice' + invoiceMsg + ' and cannot be deleted directly. Please delete the linked invoice first, then you can remove this stock.',
+            icon:        'info',
+            confirmText: 'Understood',
+            cancelText:  'Close',
+        });
     }
 
     /* ── Copy IMEI ── */

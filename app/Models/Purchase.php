@@ -21,6 +21,15 @@ class Purchase extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * The invoice item that links this stock to an invoice.
+     * invoice_items.item_id = purchases.id
+     */
+    public function invoiceItem()
+    {
+        return $this->hasOne(InvoiceItem::class, 'item_id', 'id');
+    }
+
     /** Attachments (documents) linked to this stock item */
     public function attachments()
     {
