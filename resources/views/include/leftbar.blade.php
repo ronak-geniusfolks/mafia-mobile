@@ -54,19 +54,17 @@
                 @endcan
 
                 <!-- Stocks -->
-                @canany(['purchases.view', 'purchases.create', 'purchases.import'])
-                    <li class="{{ request()->routeIs(['allpurchases', 'purchase.create', 'purchase.create.multiple', 'purchase.edit', 'purchase-detail', 'purchase.importform']) ? 'menuitem-active' : '' }}">
-                        <a data-toggle="collapse" href="#stocksMenu" role="button" aria-expanded="{{ request()->routeIs(['allpurchases', 'purchase.create', 'purchase.create.multiple', 'purchase.edit', 'purchase-detail', 'purchase.importform']) ? 'true' : 'false' }}" aria-controls="stocksMenu">
+                @canany(['purchases.view', 'purchases.create'])
+                    <li class="{{ request()->routeIs(['allpurchases', 'purchase.create', 'purchase.create.multiple', 'purchase.edit', 'purchase-detail']) ? 'menuitem-active' : '' }}">
+                        <a data-toggle="collapse" href="#stocksMenu" role="button" aria-expanded="{{ request()->routeIs(['allpurchases', 'purchase.create', 'purchase.create.multiple', 'purchase.edit', 'purchase-detail']) ? 'true' : 'false' }}" aria-controls="stocksMenu">
                             <i data-feather="shopping-cart"></i>
                             <span>Stocks</span>
                             <span class="menu-arrow"></span>
                         </a>
-                        <div class="collapse {{ request()->routeIs(['allpurchases', 'purchase.create', 'purchase.create.multiple', 'purchase.edit', 'purchase-detail', 'purchase.importform']) ? 'show' : '' }}" id="stocksMenu">
+                        <div class="collapse {{ request()->routeIs(['allpurchases', 'purchase.create', 'purchase.create.multiple', 'purchase.edit', 'purchase-detail']) ? 'show' : '' }}" id="stocksMenu">
                             <ul class="nav-second-level">
                                 @can('purchases.view')
                                 <li><a href="{{ route('allpurchases') }}" class="{{ request()->routeIs('allpurchases') ? 'active' : '' }}">All Stocks</a></li> @endcan
-                                @can('purchases.import')
-                                <li><a href="{{ route('purchase.importform') }}" class="{{ request()->routeIs('purchase.importform') ? 'active' : '' }}">Import Stocks</a></li> @endcan
                             </ul>
                         </div>
                     </li>

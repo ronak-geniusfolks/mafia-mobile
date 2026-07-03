@@ -264,6 +264,16 @@ class PurchaseController extends Controller
         return redirect()->route('allpurchases')->withStatus('Stock Deleted Successfully..');
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        if (!empty($ids)) {
+            Purchase::whereIn('id', $ids)->update(['deleted' => 1]);
+        }
+        $count = count($ids);
+        return redirect()->route('allpurchases')->withStatus("{$count} stock(s) deleted successfully.");
+    }
+
     public function editPurchase($id)
     {
         $purchase = Purchase::findOrFail($id);
