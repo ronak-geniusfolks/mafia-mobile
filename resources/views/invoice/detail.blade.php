@@ -291,6 +291,36 @@
             color: #333;
         }
 
+        /* ---------- DUAL SIGNATURES ---------- */
+        .signatures-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 10px;
+        }
+        .sig-box {
+            width: 44%;
+            text-align: center;
+        }
+        .sig-space {
+            height: 36px;
+        }
+        .sig-line {
+            border-top: 1px solid #444;
+            padding-top: 4px;
+            font-size: 10px;
+            font-weight: 800;
+            text-align: center;
+            color: #222;
+        }
+        .sig-label {
+            font-size: 8.5px;
+            color: #555;
+            text-align: center;
+            margin-top: 2px;
+            font-style: italic;
+        }
+
         /* ---------- FOOTER ---------- */
         .footer-section {
             display: flex;
@@ -505,6 +535,7 @@
                         <ul>
                             <li>All devices comes with limited 3-Month Mafia Mobile Warranty, which covers hardware malfunction and issue, Battery health is covered under warranty only in case of "Mandatory Service Request" Message. No warranty on Physical & Water Damage.</li>
                             <li>Once the Invoice is generated, the product shall remain non-returnable and any payment so made shall be Non Refundable.</li>
+                            <li>Once the Invoice is generated, the product is non-refundable &amp; non-returnable. If under any condition Return eligible after purchase 15 to 20% amount will be deducted.</li>
                             <li>Mafia Mobile as a firm is engaged in Sale/Buy/Exchange of Active Second hand devices. We Declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</li>
                             <li>Value of supply is Determined in accordance to section 15(5) of the central goods and services tax act read with rule 32(5) of "determination of the value of supply "The credit for GST input shall not be available to the buyer if buyer follow the same valuation rule.</li>
                             <li>All service and support to be provided by Authorized Apple store.</li>
@@ -520,9 +551,18 @@
                             <li>By purchasing our product, you agree that we may post your story on social media.</li>
                         </ul>
                     </div>
-                    <div class="signature-section">
-                        <div class="signature-text">For, {{ $companyName }}</div>
-                        <div class="authorized-signatory">Authorized Signatory</div>
+                    <!-- Dual Signature Row -->
+                    <div class="signatures-row">
+                        <div class="sig-box">
+                            <div class="sig-space"></div>
+                            <div class="sig-line">Customer Signature</div>
+                            <div class="sig-label">Name &amp; Date</div>
+                        </div>
+                        <div class="sig-box">
+                            <div class="sig-space"></div>
+                            <div class="sig-line">Authorized Signatory</div>
+                            <div class="sig-label">For, {{ $companyName }}</div>
+                        </div>
                     </div>
                 </div>
 

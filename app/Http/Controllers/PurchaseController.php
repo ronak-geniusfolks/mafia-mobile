@@ -135,6 +135,7 @@ class PurchaseController extends Controller
             })
             ->where('deleted', 0)
             ->orderBy('id', $sortDirection)
+            ->with('invoiceItem.invoice')
             ->paginate(20);
         $colors = Purchase::select('color')
             ->distinct()
@@ -259,9 +260,46 @@ class PurchaseController extends Controller
 
     public function deleteStock($id, Request $request)
     {
+        $purchase = Purchase::findOrFail($id);
+
+        if ($purchase->is_sold == 1) {
+            return redirect()->route('allpurchases')
+                ->with('error', 'Cannot delete a sold stock. Please delete the linked invoice first.');
+        }
+
         Purchase::where('id', $id)->update(['deleted' => 1]);
 
-        return redirect()->route('allpurchases')->withStatus('Stock Deleted Successfully..');
+        return redirect()->route('allpurchases')->withStatus('Stock Deleted Successfully.');
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        if (empty($ids)) {
+            return redirect()->route('allpurchases');
+        }
+
+        // Separate sold vs deletable stocks
+        $soldCount    = Purchase::whereIn('id', $ids)->where('is_sold', 1)->count();
+        $availableIds = Purchase::whereIn('id', $ids)->where('is_sold', 0)->where('deleted', 0)->pluck('id')->toArray();
+
+        if (!empty($availableIds)) {
+            Purchase::whereIn('id', $availableIds)->update(['deleted' => 1]);
+        }
+
+        $deletedCount = count($availableIds);
+
+        if ($soldCount > 0 && $deletedCount > 0) {
+            return redirect()->route('allpurchases')
+                ->with('error', "{$deletedCount} stock(s) deleted. {$soldCount} sold stock(s) were skipped — delete their linked invoice first.");
+        }
+
+        if ($soldCount > 0 && $deletedCount === 0) {
+            return redirect()->route('allpurchases')
+                ->with('error', 'Cannot delete sold stock(s). Please delete the linked invoice(s) first.');
+        }
+
+        return redirect()->route('allpurchases')->withStatus("{$deletedCount} stock(s) deleted successfully.");
     }
 
     public function editPurchase($id)

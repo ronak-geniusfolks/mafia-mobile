@@ -81,6 +81,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/purchase/edit/{id}', [PurchaseController::class, 'editPurchase'])->middleware('permission:purchases.edit')->name('purchase.edit');
     Route::post('/admin/purchase/update/{id}', [PurchaseController::class, 'updatePurchase'])->middleware('permission:purchases.edit')->name('purchase.update');
     Route::delete('/admin/purchase/delete/{id}', [PurchaseController::class, 'deleteStock'])->middleware('permission:purchases.delete')->name('delete-stock');
+    Route::post('/admin/purchases/bulk-delete', [PurchaseController::class, 'bulkDelete'])->middleware('permission:purchases.delete')->name('purchases.bulk-delete');
     Route::get('/admin/purchase-detail/{id}', [PurchaseController::class, 'purchaseDetail'])->middleware('permission:purchases.view')->name('purchase-detail');
     Route::get('/admin/purchase/import', [PurchaseController::class, 'importStocks'])->middleware('permission:purchases.import')->name('purchase.importform');
     Route::post('/admin/purchase/importdata', [PurchaseController::class, 'importStocksData'])->middleware('permission:purchases.import')->name('purchase.import');
