@@ -51,6 +51,11 @@
 @endsection
 
 @section('content')
+    @php
+        // Same token is posted with the form and used by the documents panel below,
+        // so files uploaded before saving get linked to the new invoice on submit.
+        $docToken = old('upload_token', $uploadToken);
+    @endphp
     <div class="container-fluid">
         <!-- start page title -->
         <div class="row">
@@ -76,6 +81,7 @@
                             class="@if(count($errors)) was-validated @endif">
                             @csrf
                             <input type="hidden" name="invoice_no" value="{{ $lastId }}" />
+                            <input type="hidden" name="upload_token" value="{{ $docToken }}" />
 
                             <!-- Customer Info -->
                             <div class="row g-3">
@@ -192,6 +198,13 @@
                                     <input type="text" name="declaration" class="form-control form-control-sm"
                                     placeholder="Add any declaration or note" value="{{ old('declaration') }}">
                             </div>
+
+                            {{-- Customer Documents — attach now, linked automatically on save --}}
+                            @include('include.attachments-panel', [
+                                'attachableType' => 'invoice',
+                                'pendingMode'    => true,
+                                'pendingToken'   => $docToken,
+                            ])
 
                             <!-- Actions -->
                             <div class="d-flex justify-content-end mt-4">

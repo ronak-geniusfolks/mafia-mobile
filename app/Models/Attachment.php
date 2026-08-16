@@ -19,6 +19,26 @@ class Attachment extends Model
         return $this->belongsTo(User::class, 'uploaded_by');
     }
 
+    /** Pending (not yet linked to a parent) uploads for a given upload session token */
+    public function scopePendingForToken($q, string $token)
+    {
+        return $q->whereNull('attachable_id')->where('upload_token', $token);
+    }
+
+    /** All stale pending uploads created before the given cutoff */
+    public function scopeStalePending($q, $cutoff)
+    {
+        return $q->whereNull('attachable_id')
+            ->whereNotNull('upload_token')
+            ->where('created_at', '<', $cutoff);
+    }
+
+    /** True while the file is still in the pending bucket (no parent yet) */
+    public function isPending(): bool
+    {
+        return $this->attachable_id === null && ! empty($this->upload_token);
+    }
+
     /** Public URL for serving the file */
     public function getUrlAttribute(): string
     {

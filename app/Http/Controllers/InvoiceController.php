@@ -11,7 +11,10 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class InvoiceController extends Controller
 {
@@ -50,9 +53,19 @@ class InvoiceController extends Controller
 
         $formattedNumber = 'MF'.$currentYear.mb_str_pad((string) $nextInvoiceNo, 4, '0', STR_PAD_LEFT);
 
+        // Pending upload session: lets the user attach documents (PC + phone/QR)
+        // on this Create screen before the invoice is saved. Files are linked to
+        // the invoice on submit by AttachmentController::attachPendingToInvoice().
+        $uploadToken = Str::random(48);
+        Cache::put('mm_upload_token_'.$uploadToken, [
+            'type'    => 'invoice',
+            'pending' => true,
+        ], now()->addHours(24));
+
         return view('invoice.add', [
             'stocksModel' => $stocksModel,
             'lastId' => $formattedNumber,
+            'uploadToken' => $uploadToken,
         ]);
     }
 
@@ -162,6 +175,14 @@ class InvoiceController extends Controller
             }
 
             DB::commit();
+
+            // Link any documents the user attached on the Create screen (PC + phone)
+            // to this invoice. Best-effort: a file issue must not break invoice creation.
+            try {
+                AttachmentController::attachPendingToInvoice($request->upload_token, $invoice);
+            } catch (Exception $e) {
+                Log::warning('Failed to link pending attachments to invoice '.$invoice->id.': '.$e->getMessage());
+            }
 
             // Handle Google contact sync
             if ($request->customer_no_sync === 'on') {
