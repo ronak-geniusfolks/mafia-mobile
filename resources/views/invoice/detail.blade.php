@@ -382,6 +382,19 @@
         </a>
     </div>
 
+    {{-- Customer Documents --}}
+    <div class="container-fluid mb-3">
+        <div class="row justify-content-center">
+            <div class="col-12" style="max-width: 210mm;">
+                @include('include.attachments-panel', [
+                    'attachable'     => $invoice,
+                    'attachableType' => 'invoice',
+                    'attachableId'   => $invoice->id,
+                ])
+            </div>
+        </div>
+    </div>
+
     <div class="page-container">
         <div class="invoice-box">
             <div class="invoice-body">

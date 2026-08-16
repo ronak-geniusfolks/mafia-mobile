@@ -20,6 +20,11 @@ class AttachmentController extends Controller
 
     public function store(Request $request)
     {
+        // ── Pending mode: uploaded from the Create screen before the parent exists ──
+        if ($request->filled('upload_token') && ! $request->filled('attachable_id')) {
+            return $this->storePending($request);
+        }
+
         $request->validate([
             'attachable_type' => 'required|in:invoice,purchase',
             'attachable_id'   => 'required|integer',
@@ -33,41 +38,157 @@ class AttachmentController extends Controller
 
         $uploaded = [];
         foreach ($request->file('files') as $file) {
-            // Capture metadata BEFORE move()
-            $origName  = $file->getClientOriginalName();
-            $mimeType  = $file->getClientMimeType();
-            $fileSize  = $file->getSize();
-            $extension = $file->getClientOriginalExtension();
-
-            $folder   = "attachments/{$type}/{$model->id}";
-            File::ensureDirectoryExists(public_path($folder));
-            $filename = date('YmdHis') . '_' . Str::slug(pathinfo($origName, PATHINFO_FILENAME)) . '.' . $extension;
-            $file->move(public_path($folder), $filename);
-
-            $attachment = Attachment::create([
+            $attachment = $this->storeFile($file, "attachments/{$type}/{$model->id}", [
                 'attachable_type' => $modelClass,
                 'attachable_id'   => $model->id,
-                'file_path'       => $folder . '/' . $filename,
-                'file_name'       => $origName,
-                'file_type'       => $mimeType,
-                'file_size'       => $fileSize,
                 'label'           => $request->label ?? null,
                 'uploaded_by'     => Auth::id(),
             ]);
-
-            $uploaded[] = [
-                'id'             => $attachment->id,
-                'file_name'      => $attachment->file_name,
-                'file_type'      => $attachment->file_type,
-                'formatted_size' => $attachment->formatted_size,
-                'url'            => $attachment->url,
-                'label'          => $attachment->label,
-                'is_image'       => $attachment->isImage(),
-                'is_pdf'         => $attachment->isPdf(),
-            ];
+            $uploaded[] = $this->formatAttachment($attachment);
         }
 
         return response()->json(['success' => true, 'attachments' => $uploaded]);
+    }
+
+    // ─── Authenticated: pending upload (Create screen, before parent exists) ────
+
+    /**
+     * Store files into a pending bucket keyed by an upload-session token.
+     * Rows keep a null attachable_id until the invoice is saved and
+     * attachPendingToInvoice() links them.
+     */
+    protected function storePending(Request $request)
+    {
+        $request->validate([
+            'upload_token' => 'required|string|max:64',
+            'files'        => 'required|array|min:1',
+            'files.*'      => 'required|file|mimes:jpg,jpeg,png,gif,webp,pdf|max:10240',
+            'label'        => 'nullable|string|max:100',
+        ]);
+
+        $token   = $request->upload_token;
+        $session = Cache::get('mm_upload_token_' . $token);
+
+        if (! $session || empty($session['pending'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This upload session has expired. Please reload the page and try again.',
+            ], 403);
+        }
+
+        [$modelClass] = $this->resolveModel($session['type'] ?? 'invoice');
+
+        $uploaded = [];
+        foreach ($request->file('files') as $file) {
+            $attachment = $this->storeFile($file, "attachments/pending/{$token}", [
+                'attachable_type' => $modelClass,
+                'attachable_id'   => null,
+                'upload_token'    => $token,
+                'label'           => $request->label ?? null,
+                'uploaded_by'     => Auth::id(),
+            ]);
+            $uploaded[] = $this->formatAttachment($attachment);
+        }
+
+        return response()->json(['success' => true, 'attachments' => $uploaded]);
+    }
+
+    /** Return the current pending uploads for a token (the Create screen polls this). */
+    public function listPending(string $token)
+    {
+        $attachments = Attachment::pendingForToken($token)
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn (Attachment $a) => $this->formatAttachment($a))
+            ->values();
+
+        return response()->json(['success' => true, 'attachments' => $attachments]);
+    }
+
+    // ─── Shared helpers ─────────────────────────────────────────────────────────
+
+    /**
+     * Move an uploaded file into $folder (under public/) and create its Attachment row.
+     * A short random suffix keeps filenames unique when several files land in the same
+     * second (e.g. a phone and a laptop uploading at once).
+     */
+    protected function storeFile($file, string $folder, array $attributes): Attachment
+    {
+        // Capture metadata BEFORE move()
+        $origName  = $file->getClientOriginalName();
+        $mimeType  = $file->getClientMimeType();
+        $fileSize  = $file->getSize();
+        $extension = $file->getClientOriginalExtension();
+
+        File::ensureDirectoryExists(public_path($folder));
+        $filename = date('YmdHis') . '_' . Str::random(6) . '_'
+            . Str::slug(pathinfo($origName, PATHINFO_FILENAME)) . '.' . $extension;
+        $file->move(public_path($folder), $filename);
+
+        return Attachment::create(array_merge([
+            'file_path' => $folder . '/' . $filename,
+            'file_name' => $origName,
+            'file_type' => $mimeType,
+            'file_size' => $fileSize,
+        ], $attributes));
+    }
+
+    /** Shape an Attachment for the JSON the panel JS consumes. */
+    protected function formatAttachment(Attachment $attachment): array
+    {
+        return [
+            'id'             => $attachment->id,
+            'file_name'      => $attachment->file_name,
+            'file_type'      => $attachment->file_type,
+            'formatted_size' => $attachment->formatted_size,
+            'url'            => $attachment->url,
+            'label'          => $attachment->label,
+            'is_image'       => $attachment->isImage(),
+            'is_pdf'         => $attachment->isPdf(),
+        ];
+    }
+
+    /**
+     * Link all pending uploads for $token to the freshly-created invoice and move
+     * their files from the pending bucket into the invoice's own folder. Safe to call
+     * with a null/empty token. Returns the number of files linked.
+     */
+    public static function attachPendingToInvoice(?string $token, Invoice $invoice): int
+    {
+        if (empty($token)) {
+            return 0;
+        }
+
+        $pending = Attachment::pendingForToken($token)->get();
+        $moved   = 0;
+
+        foreach ($pending as $att) {
+            $newFolder = "attachments/invoice/{$invoice->id}";
+            File::ensureDirectoryExists(public_path($newFolder));
+
+            $newPath = $newFolder . '/' . basename($att->file_path);
+            $oldFull = public_path($att->file_path);
+            $newFull = public_path($newPath);
+
+            if (is_file($oldFull) && @rename($oldFull, $newFull)) {
+                $att->file_path = $newPath;
+            }
+
+            $att->attachable_type = Invoice::class;
+            $att->attachable_id   = $invoice->id;
+            $att->upload_token    = null;
+            $att->save();
+            $moved++;
+        }
+
+        // Best-effort cleanup of the now-empty pending directory + token.
+        $dir = public_path("attachments/pending/{$token}");
+        if (is_dir($dir) && count((array) glob($dir . '/*')) === 0) {
+            @rmdir($dir);
+        }
+        Cache::forget('mm_upload_token_' . $token);
+
+        return $moved;
     }
 
     // ─── Authenticated: delete ────────────────────────────────────────────────
@@ -125,6 +246,17 @@ class AttachmentController extends Controller
             return view('attachments.expired');
         }
 
+        // Pending session — the parent (e.g. a new invoice) isn't created yet.
+        if (! empty($data['pending'])) {
+            return view('attachments.mobile-upload', [
+                'token'   => $token,
+                'type'    => $data['type'],
+                'id'      => null,
+                'model'   => null,
+                'pending' => true,
+            ]);
+        }
+
         [$modelClass] = $this->resolveModel($data['type']);
         $model = $modelClass::find($data['id']);
 
@@ -133,10 +265,11 @@ class AttachmentController extends Controller
         }
 
         return view('attachments.mobile-upload', [
-            'token' => $token,
-            'type'  => $data['type'],
-            'id'    => $data['id'],
-            'model' => $model,
+            'token'   => $token,
+            'type'    => $data['type'],
+            'id'      => $data['id'],
+            'model'   => $model,
+            'pending' => false,
         ]);
     }
 
@@ -157,31 +290,26 @@ class AttachmentController extends Controller
         ]);
 
         [$modelClass, $type] = $this->resolveModel($data['type']);
-        $id = $data['id'];
+        $isPending = ! empty($data['pending']);
 
         $uploaded = 0;
         foreach ($request->file('files') as $file) {
-            // Capture metadata BEFORE move()
-            $origName  = $file->getClientOriginalName();
-            $mimeType  = $file->getClientMimeType();
-            $fileSize  = $file->getSize();
-            $extension = $file->getClientOriginalExtension();
-
-            $folder   = "attachments/{$type}/{$id}";
-            File::ensureDirectoryExists(public_path($folder));
-            $filename = date('YmdHis') . '_' . Str::slug(pathinfo($origName, PATHINFO_FILENAME)) . '.' . $extension;
-            $file->move(public_path($folder), $filename);
-
-            Attachment::create([
-                'attachable_type' => $modelClass,
-                'attachable_id'   => $id,
-                'file_path'       => $folder . '/' . $filename,
-                'file_name'       => $origName,
-                'file_type'       => $mimeType,
-                'file_size'       => $fileSize,
-                'label'           => $request->label ?? null,
-                'uploaded_by'     => null, // mobile = no auth
-            ]);
+            if ($isPending) {
+                $this->storeFile($file, "attachments/pending/{$token}", [
+                    'attachable_type' => $modelClass,
+                    'attachable_id'   => null,
+                    'upload_token'    => $token,
+                    'label'           => $request->label ?? null,
+                    'uploaded_by'     => null, // mobile = no auth
+                ]);
+            } else {
+                $this->storeFile($file, "attachments/{$type}/{$data['id']}", [
+                    'attachable_type' => $modelClass,
+                    'attachable_id'   => $data['id'],
+                    'label'           => $request->label ?? null,
+                    'uploaded_by'     => null, // mobile = no auth
+                ]);
+            }
             $uploaded++;
         }
 
@@ -206,8 +334,9 @@ class AttachmentController extends Controller
         $purchaseLabels = ['Original Bill', 'Device Photo', 'Box Photo', 'Accessories Photo', 'Other Document'];
         $allLabels      = array_unique(array_merge($invoiceLabels, $purchaseLabels));
 
-        // Invoice attachments
+        // Invoice attachments (exclude not-yet-linked pending uploads)
         $invoiceAtts = Attachment::where('attachable_type', Invoice::class)
+            ->whereNotNull('attachable_id')
             ->with(['attachable', 'uploader'])
             ->when($label,  fn($q) => $q->where('label', $label))
             ->when($search, fn($q) => $q->whereHas('attachable', fn($sq) =>
@@ -225,8 +354,9 @@ class AttachmentController extends Controller
             ->paginate(20, ['*'], 'ipage')
             ->withQueryString();
 
-        // Purchase attachments
+        // Purchase attachments (exclude not-yet-linked pending uploads)
         $purchaseAtts = Attachment::where('attachable_type', Purchase::class)
+            ->whereNotNull('attachable_id')
             ->with(['attachable', 'uploader'])
             ->when($label,  fn($q) => $q->where('label', $label))
             ->when($search, fn($q) => $q->whereHas('attachable', fn($sq) =>
@@ -267,6 +397,7 @@ class AttachmentController extends Controller
         $dateField  = $isInvoice ? 'invoice_date' : 'purchase_date';
 
         $query = Attachment::where('attachable_type', $modelClass)
+            ->whereNotNull('attachable_id')
             ->with(['attachable', 'uploader'])
             ->when($label, fn($q) => $q->where('label', $label));
 

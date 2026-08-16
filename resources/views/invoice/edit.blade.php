@@ -219,6 +219,13 @@
                                 </button>
                             </div>
                         </form>
+
+                        {{-- Customer Documents --}}
+                        @include('include.attachments-panel', [
+                            'attachable'     => $invoice,
+                            'attachableType' => 'invoice',
+                            'attachableId'   => $invoice->id,
+                        ])
                     </div>
                 </div>
             </div>
