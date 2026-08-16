@@ -197,6 +197,9 @@ Route::middleware(['auth'])->prefix('attachments')->name('attachments.')->group(
     Route::delete('/{id}', [AttachmentController::class, 'destroy'])->name('destroy');
     Route::get('/token/{type}/{id}', [AttachmentController::class, 'generateToken'])->name('token');
 
+    // Pending uploads (Create screen polls this so phone/QR uploads appear live)
+    Route::get('/pending/{token}', [AttachmentController::class, 'listPending'])->name('pending');
+
     // Documents Manager (view + export)
     Route::get('/documents', [AttachmentController::class, 'docIndex'])
         ->middleware('permission:attachments.view')

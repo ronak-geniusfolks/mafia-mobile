@@ -1,21 +1,34 @@
 {{--
     Reusable attachments panel.
-    Required variables:
+    Linked mode (existing parent record):
       $attachable      – the Invoice or Purchase model instance
       $attachableType  – 'invoice' or 'purchase'
       $attachableId    – $attachable->id
-    Optional:
+    Pending mode (parent not created yet, e.g. Create Invoice screen):
+      $pendingMode     – true
+      $pendingToken    – the upload-session token
+      $attachableType  – 'invoice' or 'purchase'
+    Optional (both modes):
       $labelOptions    – array of suggested label strings
 --}}
 @php
-    $attachments   = $attachable->attachments()->get();
+    $pendingMode  = $pendingMode ?? false;
+    $pendingToken = $pendingToken ?? null;
+
+    $attachments = $pendingMode
+        ? \App\Models\Attachment::pendingForToken($pendingToken)->orderBy('created_at')->get()
+        : $attachable->attachments()->get();
+
     $defaultLabels = $attachableType === 'invoice'
         ? ['Aadhaar Card', 'PAN Card', 'Driving Licence', 'Voter ID', 'Passport', 'Other ID Proof']
         : ['Original Bill', 'Device Photo', 'Box Photo', 'Accessories Photo', 'Other Document'];
     $labelOpts   = $labelOptions ?? $defaultLabels;
-    $tokenRoute  = route('attachments.token', ['type' => $attachableType, 'id' => $attachableId]);
-    $storeRoute  = route('attachments.store');
-    $panelId     = $attachableType . '-' . $attachableId;
+
+    $storeRoute      = route('attachments.store');
+    $tokenRoute      = $pendingMode ? null : route('attachments.token', ['type' => $attachableType, 'id' => $attachableId]);
+    $mobileUploadUrl = $pendingMode ? route('attachments.mobile-upload', ['token' => $pendingToken]) : null;
+    $listPendingUrl  = $pendingMode ? route('attachments.pending', ['token' => $pendingToken]) : null;
+    $panelId         = $pendingMode ? 'invoice-pending' : ($attachableType . '-' . $attachableId);
 @endphp
 
 {{-- ── Styles (injected once into <head>) ────────────────────────────────── --}}
@@ -33,6 +46,14 @@
 }
 .att-panel-header h5 { margin: 0; font-size: 0.95rem; font-weight: 700; }
 .att-btn-group { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+/* ── Mobile: stack title over full-width, evenly-split action buttons ────── */
+@media (max-width: 575.98px) {
+    .att-panel-header { flex-direction: column; align-items: stretch; }
+    .att-panel-header h5 { margin-bottom: 0.5rem; }
+    .att-btn-group { width: 100%; }
+    .att-btn-group .btn { flex: 1 1 0; padding: 0.5rem 0.5rem; font-size: 0.9rem; }
+}
 
 /* ── Upload form ─────────────────────────────────────────────────────────── */
 .att-upload-box {
@@ -166,7 +187,12 @@
                     <i class="mdi mdi-upload mr-1"></i><span class="d-none d-sm-inline">Upload from </span>PC
                 </button>
                 <button class="btn btn-sm btn-outline-info" type="button"
-                    onclick="attShowQr('{{ $panelId }}', '{{ $tokenRoute }}')">
+                    @if($pendingMode)
+                    onclick="attShowQrUrl('{{ $panelId }}', '{{ $mobileUploadUrl }}')"
+                    @else
+                    onclick="attShowQr('{{ $panelId }}', '{{ $tokenRoute }}')"
+                    @endif
+                    >
                     <i class="mdi mdi-qrcode mr-1"></i><span class="d-none d-sm-inline">QR </span>Mobile
                 </button>
             </div>
@@ -200,7 +226,7 @@
                 </div>
                 <div>
                     <button class="btn btn-success btn-sm att-upload-btn" type="button"
-                        onclick="attDoUpload('{{ $panelId }}','{{ $storeRoute }}','{{ $attachableType }}','{{ $attachableId }}','{{ csrf_token() }}')">
+                        onclick="attDoUpload('{{ $panelId }}','{{ $storeRoute }}','{{ $attachableType }}','{{ $pendingMode ? '' : $attachableId }}','{{ csrf_token() }}','{{ $pendingMode ? $pendingToken : '' }}')">
                         <i class="mdi mdi-cloud-upload mr-1"></i>Upload
                     </button>
                 </div>
@@ -297,44 +323,112 @@ function attToggleUpload(pid) {
     document.getElementById('att-qr-' + pid).style.display = 'none';
 }
 
-function attShowQr(pid, tokenRoute) {
-    const qrPanel  = document.getElementById('att-qr-' + pid);
-    const loading  = document.getElementById('att-qrloading-' + pid);
-    const qrBox    = document.getElementById('att-qrbox-' + pid);
-    const qrLink   = document.getElementById('att-qrlink-' + pid);
-
+function attOpenQrPanel(pid) {
+    const qrPanel = document.getElementById('att-qr-' + pid);
     document.getElementById('att-upload-' + pid).style.display = 'none';
     qrPanel.style.display = 'block';
     qrPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
 
-    if (window._vmQrCache[pid]) {
-        loading.style.display = 'none';
-        return;
-    }
+function attDrawQr(pid, url) {
+    const loading = document.getElementById('att-qrloading-' + pid);
+    const qrBox   = document.getElementById('att-qrbox-' + pid);
+    const qrLink  = document.getElementById('att-qrlink-' + pid);
+    loading.style.display = 'none';
+    qrBox.innerHTML = '';
+    qrLink.href = url;
+    new QRCode(qrBox, {
+        text: url,
+        width: 200, height: 200,
+        colorDark: '#111827', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+    });
+    window._vmQrCache[pid] = url;
+}
+
+// Linked mode: fetch a fresh token from the server, then draw the QR.
+function attShowQr(pid, tokenRoute) {
+    attOpenQrPanel(pid);
+    const loading = document.getElementById('att-qrloading-' + pid);
+
+    if (window._vmQrCache[pid]) { loading.style.display = 'none'; return; }
 
     loading.style.display = 'block';
-    qrBox.innerHTML = '';
+    document.getElementById('att-qrbox-' + pid).innerHTML = '';
 
     fetch(tokenRoute, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(r => r.json())
         .then(data => {
             if (!data.success) throw new Error('failed');
-            loading.style.display = 'none';
-            qrLink.href = data.upload_url;
-            new QRCode(qrBox, {
-                text: data.upload_url,
-                width: 200, height: 200,
-                colorDark: '#111827', colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.M
-            });
-            window._vmQrCache[pid] = data.upload_url;
+            attDrawQr(pid, data.upload_url);
         })
         .catch(() => {
             loading.innerHTML = '<span class="text-danger"><i class="mdi mdi-alert-circle mr-1"></i>Could not generate link. Please refresh.</span>';
         });
 }
 
-function attDoUpload(pid, storeRoute, type, id, csrf) {
+// Pending mode: the mobile URL is already known, so draw the QR immediately.
+function attShowQrUrl(pid, url) {
+    attOpenQrPanel(pid);
+    if (window._vmQrCache[pid]) { document.getElementById('att-qrloading-' + pid).style.display = 'none'; return; }
+    attDrawQr(pid, url);
+}
+
+function attEnsureGrid(pid) {
+    let grid = document.getElementById('att-grid-' + pid);
+    if (!grid) {
+        document.getElementById('att-list-' + pid).innerHTML =
+            `<div class="att-grid" id="att-grid-${pid}"></div>`;
+        grid = document.getElementById('att-grid-' + pid);
+    }
+    const empty = document.getElementById('att-empty-' + pid);
+    if (empty) empty.style.display = 'none';
+    return grid;
+}
+
+function attBumpBadge(pid, delta) {
+    const panel = document.getElementById('att-panel-' + pid);
+    if (!panel) return;
+    const h5 = panel.querySelector('.att-panel-header h5');
+    if (!h5) return;
+    let badge = h5.querySelector('.badge');
+    if (badge) {
+        const next = (parseInt(badge.textContent, 10) || 0) + delta;
+        if (next <= 0) badge.remove(); else badge.textContent = next;
+    } else if (delta > 0) {
+        const b = document.createElement('span');
+        b.className = 'badge badge-primary ml-1';
+        b.textContent = delta;
+        h5.appendChild(b);
+    }
+}
+
+function attRenderCard(grid, att, csrf) {
+    if (!grid || document.getElementById('att-item-' + att.id)) return; // de-dupe (polling)
+    const card = document.createElement('div');
+    card.className = 'att-card';
+    card.id = 'att-item-' + att.id;
+    const fname = att.file_name.length > 24 ? att.file_name.substring(0, 24) + '…' : att.file_name;
+    card.innerHTML = `
+        ${att.is_image
+            ? `<a href="${att.url}" target="_blank" class="d-block w-100"><img src="${att.url}" class="att-thumb" alt="${att.file_name}"></a>`
+            : `<a href="${att.url}" target="_blank"><img src="/assets/images/pdf-file.svg" class="att-thumb-pdf" alt="PDF"></a>`}
+        ${att.label ? `<span class="badge badge-info att-label-badge">${att.label}</span>` : ''}
+        <div class="att-filename">${fname}</div>
+        <div class="att-filesize">${att.formatted_size}</div>
+        <div class="att-actions">
+            <a href="${att.url}" target="_blank" class="btn btn-xs btn-outline-primary mr-1">
+                <i class="mdi mdi-eye"></i>
+            </a>
+            <button type="button" class="btn btn-xs btn-outline-danger" onclick="attDelete(${att.id},'${csrf}')">
+                <i class="mdi mdi-delete"></i>
+            </button>
+        </div>`;
+    grid.prepend(card);
+}
+
+// Works for both linked mode (type+id) and pending mode (upload token).
+function attDoUpload(pid, storeRoute, type, id, csrf, token) {
     const fileInput  = document.getElementById('att-file-' + pid);
     const labelInput = document.getElementById('att-label-' + pid);
     const progress   = document.getElementById('att-progress-' + pid);
@@ -348,8 +442,12 @@ function attDoUpload(pid, storeRoute, type, id, csrf) {
 
     const fd = new FormData();
     Array.from(fileInput.files).forEach(f => fd.append('files[]', f));
-    fd.append('attachable_type', type);
-    fd.append('attachable_id',   id);
+    if (token && !id) {
+        fd.append('upload_token', token);
+    } else {
+        fd.append('attachable_type', type);
+        fd.append('attachable_id', id);
+    }
     if (labelInput.value) fd.append('label', labelInput.value);
     fd.append('_token', csrf);
 
@@ -364,64 +462,20 @@ function attDoUpload(pid, storeRoute, type, id, csrf) {
     };
     xhr.onload = () => {
         bar.style.width = '100%';
-        const res = JSON.parse(xhr.responseText);
+        let res = {};
+        try { res = JSON.parse(xhr.responseText); } catch (e) { res = {}; }
         if (xhr.status === 200 && res.success) {
-            msg.innerHTML = `<div class="alert alert-success py-1 px-2 small mb-0">
-                ✅ ${res.attachments.length} file(s) uploaded.
-                <a href="javascript:location.reload()">Refresh</a> to see all.
-            </div>`;
+            msg.innerHTML = `<div class="alert alert-success py-1 px-2 small mb-0">✅ ${res.attachments.length} file(s) added.</div>`;
             fileInput.value = '';
             const lbl = document.querySelector(`label[for="att-file-${pid}"]`);
             if (lbl) lbl.textContent = 'Choose files…';
 
-            const empty = document.getElementById('att-empty-' + pid);
-            if (empty) empty.style.display = 'none';
-
-            // Update the badge count in the panel header
-            const panel = document.getElementById('att-panel-' + pid);
-            if (panel) {
-                const h5 = panel.querySelector('.att-panel-header h5');
-                let badge = h5 ? h5.querySelector('.badge') : null;
-                const addedCount = res.attachments.length;
-                if (badge) {
-                    badge.textContent = (parseInt(badge.textContent, 10) || 0) + addedCount;
-                } else if (h5) {
-                    const b = document.createElement('span');
-                    b.className = 'badge badge-primary ml-1';
-                    b.textContent = addedCount;
-                    h5.appendChild(b);
-                }
-            }
-
-            let grid = document.getElementById('att-grid-' + pid);
-            if (!grid) {
-                document.getElementById('att-list-' + pid).innerHTML =
-                    `<div class="att-grid" id="att-grid-${pid}"></div>`;
-                grid = document.getElementById('att-grid-' + pid);
-            }
-
+            const grid = attEnsureGrid(pid);
             res.attachments.forEach(att => {
-                const card = document.createElement('div');
-                card.className = 'att-card';
-                card.id = 'att-item-' + att.id;
-                const fname = att.file_name.length > 24 ? att.file_name.substring(0, 24) + '…' : att.file_name;
-                card.innerHTML = `
-                    ${att.is_image
-                        ? `<a href="${att.url}" target="_blank" class="d-block w-100"><img src="${att.url}" class="att-thumb" alt="${att.file_name}"></a>`
-                        : `<a href="${att.url}" target="_blank"><img src="/assets/images/pdf-file.svg" class="att-thumb-pdf" alt="PDF"></a>`}
-                    ${att.label ? `<span class="badge badge-info att-label-badge">${att.label}</span>` : ''}
-                    <div class="att-filename">${fname}</div>
-                    <div class="att-filesize">${att.formatted_size}</div>
-                    <div class="att-actions">
-                        <a href="${att.url}" target="_blank" class="btn btn-xs btn-outline-primary mr-1">
-                            <i class="mdi mdi-eye"></i>
-                        </a>
-                        <button type="button" class="btn btn-xs btn-outline-danger"
-                            onclick="attDelete(${att.id},'${csrf}')">
-                            <i class="mdi mdi-delete"></i>
-                        </button>
-                    </div>`;
-                grid.prepend(card);
+                if (!document.getElementById('att-item-' + att.id)) {
+                    attRenderCard(grid, att, csrf);
+                    attBumpBadge(pid, 1);
+                }
             });
         } else {
             const err = res.errors
@@ -462,21 +516,11 @@ function attDelete(attId, csrf) {
                 const panel = el.closest('[id^="att-panel-"]');
                 el.remove();
 
-                // Update the badge count in the panel header
                 if (panel) {
-                    const badge = panel.querySelector('.att-panel-header h5 .badge');
-                    if (badge) {
-                        const current = parseInt(badge.textContent, 10) || 0;
-                        const next = current - 1;
-                        if (next <= 0) {
-                            badge.remove();
-                        } else {
-                            badge.textContent = next;
-                        }
-                    }
+                    const pid = panel.id.replace('att-panel-', '');
+                    attBumpBadge(pid, -1);
 
                     // If the grid is now empty, swap it for the empty-state message
-                    const pid = panel.id.replace('att-panel-', '');
                     const grid = document.getElementById('att-grid-' + pid);
                     if (grid && grid.children.length === 0) {
                         const list = document.getElementById('att-list-' + pid);
@@ -499,6 +543,29 @@ function attDelete(attId, csrf) {
     });
 }
 
+// Pending mode: poll the server so files uploaded from the phone (QR) appear here live.
+window._attPollers = window._attPollers || {};
+function attStartPendingPoll(pid, listUrl, csrf) {
+    if (!listUrl || window._attPollers[pid]) return;
+    window._attPollers[pid] = setInterval(() => {
+        fetch(listUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success || !Array.isArray(data.attachments) || !data.attachments.length) return;
+                const grid = attEnsureGrid(pid);
+                let added = 0;
+                data.attachments.forEach(att => {
+                    if (!document.getElementById('att-item-' + att.id)) {
+                        attRenderCard(grid, att, csrf);
+                        added++;
+                    }
+                });
+                if (added > 0) attBumpBadge(pid, added);
+            })
+            .catch(() => {});
+    }, 4000);
+}
+
 // Update custom-file-input label text
 document.querySelectorAll('.att-file-input').forEach(inp => {
     inp.addEventListener('change', function () {
@@ -512,3 +579,16 @@ document.querySelectorAll('.att-file-input').forEach(inp => {
 </script>
 @endpush
 @endonce
+
+{{-- Pending mode: start live polling so phone (QR) uploads appear on this screen --}}
+@if($pendingMode)
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (window.attStartPendingPoll) {
+        attStartPendingPoll('{{ $panelId }}', '{{ $listPendingUrl }}', '{{ csrf_token() }}');
+    }
+});
+</script>
+@endpush
+@endif

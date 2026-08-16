@@ -275,14 +275,18 @@
 <div class="info-card">
     <span class="badge">{{ ucfirst($type) }}</span>
     <div class="title">
-        @if($type === 'invoice')
+        @if(empty($model))
+            New {{ ucfirst($type) }} (being created)
+        @elseif($type === 'invoice')
             Invoice #{{ $model->invoice_no }}
         @else
             Stock — {{ $model->model }} ({{ $model->imei }})
         @endif
     </div>
     <div class="meta">
-        @if($type === 'invoice')
+        @if(empty($model))
+            Upload documents here — they'll attach automatically when the {{ $type }} is saved on the computer.
+        @elseif($type === 'invoice')
             Customer: {{ $model->customer_name }} &bull; {{ \Carbon\Carbon::parse($model->invoice_date)->format('d M Y') }}
         @else
             {{ $model->brand ?? '' }} {{ $model->storage ?? '' }} &bull; {{ ucfirst($model->color ?? '') }}
@@ -292,7 +296,9 @@
 
 {{-- Already uploaded files --}}
 @php
-    $existing = $model->attachments()->latest()->get();
+    $existing = ! empty($model)
+        ? $model->attachments()->latest()->get()
+        : \App\Models\Attachment::pendingForToken($token)->latest()->get();
 @endphp
 @if($existing->count() > 0)
 <div class="uploaded-section">
