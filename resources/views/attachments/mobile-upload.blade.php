@@ -373,6 +373,12 @@
     <div class="alert alert-error"   id="alertError"></div>
 
     <button class="btn-upload" id="uploadBtn" disabled>Upload Files</button>
+    @if(!empty($backUrl))
+        <a href="{{ $backUrl }}" class="btn-camera btn-secondary-action" id="backBtn"
+            style="display:none;text-align:center;text-decoration:none;">
+            ⬅ Back to {{ $type === 'invoice' ? 'Invoice' : 'Stock' }}
+        </a>
+    @endif
 </div>
 
 <div class="footer-note">
@@ -384,6 +390,8 @@
     const token       = @json($token);
     const uploadUrl   = @json(route('attachments.mobile-store', ['token' => $token]));
     const csrfToken   = @json(csrf_token());
+    const backUrl     = @json($backUrl ?? null);
+    const backBtn     = document.getElementById('backBtn');
 
     let selectedFiles = [];
 
@@ -494,13 +502,24 @@
 
             if (xhr.status === 200 && res.success) {
                 alertSuccess.style.display = 'block';
-                alertSuccess.innerHTML = `✅ <strong>${res.uploaded} file(s) uploaded successfully!</strong><br><small>You can upload more if needed.</small>`;
+                if (backUrl) {
+                    alertSuccess.innerHTML = `✅ <strong>${res.uploaded} file(s) uploaded successfully!</strong><br><small>Taking you back…</small>`;
+                } else {
+                    alertSuccess.innerHTML = `✅ <strong>${res.uploaded} file(s) uploaded successfully!</strong><br><small>You can upload more if needed.</small>`;
+                }
                 selectedFiles = [];
                 renderPreviews();
                 updateCounter();
                 fileInput.value   = '';
                 cameraInput.value = '';
                 setTimeout(() => { progressWrap.style.display = 'none'; progressFill.style.width = '0%'; }, 1200);
+
+                if (backUrl) {
+                    // Reveal the manual fallback immediately in case the
+                    // auto-redirect below is delayed/blocked, then redirect.
+                    if (backBtn) backBtn.style.display = 'block';
+                    setTimeout(() => { window.location.href = backUrl; }, 1500);
+                }
             } else {
                 alertError.style.display = 'block';
                 alertError.textContent   = res.error ?? res.message ?? 'Upload failed. Please try again.';
