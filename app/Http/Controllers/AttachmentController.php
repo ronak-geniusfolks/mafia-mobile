@@ -254,6 +254,7 @@ class AttachmentController extends Controller
                 'id'      => null,
                 'model'   => null,
                 'pending' => true,
+                'backUrl' => null,
             ]);
         }
 
@@ -264,12 +265,17 @@ class AttachmentController extends Controller
             abort(404);
         }
 
+        // Where to send the user once they're done uploading (the invoice/stock
+        // record already exists in linked mode, so we know where "back" is).
+        $backUrl = route($data['type'] === 'invoice' ? 'invoice-detail' : 'purchase-detail', $model->id);
+
         return view('attachments.mobile-upload', [
             'token'   => $token,
             'type'    => $data['type'],
             'id'      => $data['id'],
             'model'   => $model,
             'pending' => false,
+            'backUrl' => $backUrl,
         ]);
     }
 
