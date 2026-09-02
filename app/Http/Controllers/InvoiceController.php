@@ -32,7 +32,7 @@ class InvoiceController extends Controller
         return view('invoice.index', ['allInvoices' => $allInvoices]);
     }
 
-    public function newInvoice()
+    public function newInvoice(Request $request)
     {
         $stocksModel = Purchase::where('deleted', 0)->orderBy('purchase_date', 'desc')->get();
 
@@ -53,20 +53,52 @@ class InvoiceController extends Controller
 
         $formattedNumber = 'MF'.$currentYear.mb_str_pad((string) $nextInvoiceNo, 4, '0', STR_PAD_LEFT);
 
-        // Pending upload session: lets the user attach documents (PC + phone/QR)
-        // on this Create screen before the invoice is saved. Files are linked to
-        // the invoice on submit by AttachmentController::attachPendingToInvoice().
-        $uploadToken = Str::random(48);
-        Cache::put('mm_upload_token_'.$uploadToken, [
-            'type'    => 'invoice',
-            'pending' => true,
-        ], now()->addHours(24));
+        // Resuming an in-progress draft (e.g. the phone scanned the QR code on this
+        // Create screen): reuse the same token/draft instead of starting fresh, so
+        // the phone shows exactly what was typed on the computer.
+        $draft = null;
+        $incomingToken = $request->query('upload_token');
+        $cached = $incomingToken ? Cache::get('mm_upload_token_'.$incomingToken) : null;
+
+        if ($cached && ! empty($cached['pending']) && ($cached['type'] ?? null) === 'invoice') {
+            $uploadToken = $incomingToken;
+            $draft = $cached['draft'] ?? null;
+            Cache::put('mm_upload_token_'.$uploadToken, $cached, now()->addHours(24));
+        } else {
+            // Pending upload session: lets the user attach documents (PC + phone/QR)
+            // on this Create screen before the invoice is saved. Files are linked to
+            // the invoice on submit by AttachmentController::attachPendingToInvoice().
+            $uploadToken = Str::random(48);
+            Cache::put('mm_upload_token_'.$uploadToken, [
+                'type'    => 'invoice',
+                'pending' => true,
+            ], now()->addHours(24));
+        }
 
         return view('invoice.add', [
             'stocksModel' => $stocksModel,
-            'lastId' => $formattedNumber,
+            'lastId' => $draft['invoice_no'] ?? $formattedNumber,
             'uploadToken' => $uploadToken,
+            'draft' => $draft,
         ]);
+    }
+
+    /**
+     * Autosave the in-progress Create Invoice form so scanning the QR code on a
+     * phone (or reloading) can restore it. Called every few seconds while typing.
+     */
+    public function saveDraft(Request $request, string $token)
+    {
+        $cached = Cache::get('mm_upload_token_'.$token);
+
+        if (! $cached || empty($cached['pending']) || ($cached['type'] ?? null) !== 'invoice') {
+            return response()->json(['success' => false, 'message' => 'This session has expired.'], 403);
+        }
+
+        $cached['draft'] = $request->except(['_token']);
+        Cache::put('mm_upload_token_'.$token, $cached, now()->addHours(24));
+
+        return response()->json(['success' => true]);
     }
 
     public function createInvoice(Request $request)
@@ -103,6 +135,14 @@ class InvoiceController extends Controller
             'net_amount' => 'required|numeric|min:0',
             'payment_type' => 'required|string',
         ]);
+
+        // Already submitted (e.g. from the phone via the same QR-restored draft,
+        // while this tab was still open) — treat it as success rather than erroring
+        // on the invoice_no unique constraint.
+        $existing = Invoice::where('invoice_no', $request->invoice_no)->first();
+        if ($existing) {
+            return redirect()->route('print-invoice', $existing->id);
+        }
 
         // Use database transaction
         DB::beginTransaction();

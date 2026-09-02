@@ -24,8 +24,9 @@
         : ['Original Bill', 'Device Photo', 'Box Photo', 'Accessories Photo', 'Other Document'];
     $labelOpts   = $labelOptions ?? $defaultLabels;
 
+    $qrFromContext   = $qrFromContext ?? ($attachableType === 'invoice' ? 'invoice-detail' : 'purchase-detail');
     $storeRoute      = route('attachments.store');
-    $tokenRoute      = $pendingMode ? null : route('attachments.token', ['type' => $attachableType, 'id' => $attachableId]);
+    $tokenRoute      = $pendingMode ? null : route('attachments.token', ['type' => $attachableType, 'id' => $attachableId, 'from' => $qrFromContext]);
     $mobileUploadUrl = $pendingMode ? route('attachments.mobile-upload', ['token' => $pendingToken]) : null;
     $listPendingUrl  = $pendingMode ? route('attachments.pending', ['token' => $pendingToken]) : null;
     $panelId         = $pendingMode ? 'invoice-pending' : ($attachableType . '-' . $attachableId);
@@ -241,7 +242,7 @@
         {{-- ── QR Code Panel ────────────────────────────────────────────── --}}
         <div id="att-qr-{{ $panelId }}" class="att-qr-panel" style="display:none;">
             <p class="mb-0 font-weight-bold">Scan with phone to upload documents</p>
-            <p class="small text-muted mb-3">Valid for 24 hours · No login needed on phone</p>
+            <p class="small text-muted mb-3">Valid for 24 hours · Sign in on your phone if prompted</p>
             <div id="att-qrbox-{{ $panelId }}"
                 class="d-inline-block p-2 border rounded bg-white mb-1"
                 style="min-width:212px;min-height:212px;"></div>
