@@ -55,13 +55,17 @@
         // Same token is posted with the form and used by the documents panel below,
         // so files uploaded before saving get linked to the new invoice on submit.
         $docToken = old('upload_token', $uploadToken);
+        // Autosaved draft, restored when this screen is reopened from the QR code
+        // on a phone (or a reload) — null on a plain first visit.
+        $draft = $draft ?? null;
     @endphp
     <div class="container-fluid">
         <!-- start page title -->
         <div class="row">
             <div class="col-12">
-                <div class="page-title-box">
+                <div class="page-title-box d-flex align-items-center justify-content-between flex-wrap">
                     <h4 class="page-title font-weight-bold"> CREATE INVOICE : #{{ $lastId }}</h4>
+                    <small id="draftSavedIndicator" class="text-muted"></small>
                 </div>
             </div>
         </div>
@@ -282,10 +286,11 @@
             });
 
             const oldItems = @json(old('items', []));
-            if (oldItems && Object.keys(oldItems).length > 0) {
-                // Populate rows from old input
-                Object.keys(oldItems).forEach(function(key) {
-                    const item = oldItems[key] || {};
+            const draft = @json($draft);
+
+            function populateItemRows(items) {
+                Object.keys(items).forEach(function(key) {
+                    const item = items[key] || {};
                     addItemRow();
                     const $row = $('#itemsContainer .item-row').last();
                     if (item.item_id) $row.find('.item-id').val(item.item_id);
@@ -293,10 +298,36 @@
                     if (item.quantity) $row.find('.item-quantity').val(item.quantity);
                     if (item.unit_price) $row.find('.item-price').val(item.unit_price);
                     if (item.warranty_expiry_date) $row.find('.item-warranty').val(item.warranty_expiry_date);
-                    // IMEI field is not posted if not named; use description/hidden if needed; expect item.imei
-                    if (item.item_id) $row.find('.item-imei').val(item.imei);
+                    if (item.imei) $row.find('.item-imei').val(item.imei);
                     calculateItemTotal($row);
                 });
+            }
+
+            function populateTopLevelFields(data) {
+                if (data.customer_name) $('#customer_name').val(data.customer_name);
+                if (data.customer_no) $('#customer_no').val(data.customer_no);
+                if (data.customer_address) $('#customer_address').val(data.customer_address);
+                if (data.invoice_date) $('#invoicedate').val(data.invoice_date);
+                if (data.payment_type) $('#payment_type').val(data.payment_type);
+                if (data.cgst_rate) $('#cgst').val(data.cgst_rate);
+                if (data.sgst_rate) $('#sgst').val(data.sgst_rate);
+                if (data.igst_rate) $('#igst').val(data.igst_rate);
+                if (data.discount_amount) $('#discAmount').val(data.discount_amount);
+                if (data.declaration) $('input[name="declaration"]').val(data.declaration);
+                $('#customer_no_sync').prop('checked', data.customer_no_sync === 'on');
+            }
+
+            if (oldItems && Object.keys(oldItems).length > 0) {
+                // Validation-failure redisplay takes priority over any saved draft.
+                populateItemRows(oldItems);
+            } else if (draft && Object.keys(draft).length > 0) {
+                // Restored from the autosaved draft (e.g. opened via the QR code on a phone).
+                populateTopLevelFields(draft);
+                if (draft.items && Object.keys(draft.items).length > 0) {
+                    populateItemRows(draft.items);
+                } else {
+                    addItemRow();
+                }
             } else {
                 addItemRow();
             }
@@ -369,7 +400,32 @@
 
             // Recalculate once on load to sync displays with any old values
             calculateTotals();
+
+            // Quietly back up the in-progress form every few seconds, so scanning
+            // the QR code on a phone (or a reload) can pick up right where this
+            // tab left off.
+            startDraftAutosave();
         });
+
+        function startDraftAutosave() {
+            const draftUrl = @json(route('invoice.save-draft', ['token' => $docToken]));
+            let lastSaved = null;
+
+            setInterval(function () {
+                const serialized = $('form').serialize();
+                if (serialized === lastSaved) return;
+
+                $.post(draftUrl, serialized)
+                    .done(function () {
+                        lastSaved = serialized;
+                        const $indicator = $('#draftSavedIndicator');
+                        $indicator.text('Saved ' + new Date().toLocaleTimeString());
+                    })
+                    .fail(function () {
+                        // Best-effort only — a failed autosave must never interrupt typing.
+                    });
+            }, 3000);
+        }
 
         function fetchCustomerByContact(contactNo) {
             if (!contactNo || contactNo.length < 10) {
@@ -418,7 +474,8 @@
                     <div class="row g-2 align-items-end">
                         <div class="col-md-4">
                             <label class="form-label mb-1 fw-semibold">IMEI <span class="text-danger">*</span> <small class="text-danger imei-error" style="display:none;"></small></label>
-                            <input type="text" class="form-control form-control-sm item-imei" placeholder="Search IMEI..">
+                            <input type="text" class="form-control form-control-sm item-imei"
+                                name="items[${itemCounter}][imei]" placeholder="Search IMEI..">
                             <input type="hidden" class="item-id" name="items[${itemCounter}][item_id]">
                         </div>
                         <div class="col-md-2">
