@@ -223,10 +223,23 @@ class AttachmentController extends Controller
         [$modelClass] = $this->resolveModel($type);
         $modelClass::findOrFail($id); // 404 if not found
 
+        // Which real screen to send the phone back to once it's logged in —
+        // whitelisted so this can't be abused as an open redirect.
+        $validFrom = [
+            'invoice'  => ['invoice-detail', 'invoice-edit', 'saledetail'],
+            'purchase' => ['purchase-detail', 'purchase.edit'],
+        ];
+        $defaultFrom = $type === 'invoice' ? 'invoice-detail' : 'purchase-detail';
+        $from = $request->query('from');
+        if (! in_array($from, $validFrom[$type] ?? [], true)) {
+            $from = $defaultFrom;
+        }
+
         $token = Str::random(48);
         Cache::put('mm_upload_token_' . $token, [
             'type' => $type,
             'id'   => $id,
+            'from' => $from,
         ], now()->addHours(24));
 
         return response()->json([
@@ -236,8 +249,16 @@ class AttachmentController extends Controller
         ]);
     }
 
-    // ─── Public (no auth): mobile upload page ────────────────────────────────
+    // ─── Authenticated: mobile QR entry point ─────────────────────────────────
 
+    /**
+     * Where the QR code actually points. Requires login (see routes/web.php), then
+     * shows a dedicated, phone-sized upload screen — never the full invoice/stock
+     * page itself (that would also render its own "QR Mobile" button, dumping the
+     * phone right back into the same loop). Once the user is done, "Continue"
+     * sends them on to the real screen: the in-progress Create Invoice draft
+     * (pending) or the record's own detail/edit page (linked).
+     */
     public function mobileUploadPage(string $token)
     {
         $data = Cache::get('mm_upload_token_' . $token);
@@ -246,15 +267,20 @@ class AttachmentController extends Controller
             return view('attachments.expired');
         }
 
+        $invoiceLabels  = ['Aadhaar Card', 'PAN Card', 'Driving Licence', 'Voter ID', 'Passport', 'Other ID Proof'];
+        $purchaseLabels = ['Original Bill', 'Device Photo', 'Box Photo', 'Accessories Photo', 'Other Document'];
+
         // Pending session — the parent (e.g. a new invoice) isn't created yet.
         if (! empty($data['pending'])) {
             return view('attachments.mobile-upload', [
-                'token'   => $token,
-                'type'    => $data['type'],
-                'id'      => null,
-                'model'   => null,
-                'pending' => true,
-                'backUrl' => null,
+                'token'        => $token,
+                'type'         => $data['type'],
+                'id'           => null,
+                'pending'      => true,
+                'title'        => 'New Invoice (Draft)',
+                'subtitle'     => 'Documents are linked automatically once the invoice is saved.',
+                'labelOptions' => $data['type'] === 'invoice' ? $invoiceLabels : $purchaseLabels,
+                'continueUrl'  => route('newinvoice', ['upload_token' => $token]),
             ]);
         }
 
@@ -265,64 +291,17 @@ class AttachmentController extends Controller
             abort(404);
         }
 
-        // Where to send the user once they're done uploading (the invoice/stock
-        // record already exists in linked mode, so we know where "back" is).
-        $backUrl = route($data['type'] === 'invoice' ? 'invoice-detail' : 'purchase-detail', $model->id);
+        $routeName = $data['from'] ?? ($data['type'] === 'invoice' ? 'invoice-detail' : 'purchase-detail');
 
         return view('attachments.mobile-upload', [
-            'token'   => $token,
-            'type'    => $data['type'],
-            'id'      => $data['id'],
-            'model'   => $model,
-            'pending' => false,
-            'backUrl' => $backUrl,
-        ]);
-    }
-
-    // ─── Public (no auth): handle mobile upload POST ──────────────────────────
-
-    public function mobileUploadStore(Request $request, string $token)
-    {
-        $data = Cache::get('mm_upload_token_' . $token);
-
-        if (! $data) {
-            return response()->json(['error' => 'This upload link has expired. Please ask for a new QR code.'], 403);
-        }
-
-        $request->validate([
-            'files'   => 'required|array|min:1',
-            'files.*' => 'required|file|mimes:jpg,jpeg,png,gif,webp,pdf|max:10240',
-            'label'   => 'nullable|string|max:100',
-        ]);
-
-        [$modelClass, $type] = $this->resolveModel($data['type']);
-        $isPending = ! empty($data['pending']);
-
-        $uploaded = 0;
-        foreach ($request->file('files') as $file) {
-            if ($isPending) {
-                $this->storeFile($file, "attachments/pending/{$token}", [
-                    'attachable_type' => $modelClass,
-                    'attachable_id'   => null,
-                    'upload_token'    => $token,
-                    'label'           => $request->label ?? null,
-                    'uploaded_by'     => null, // mobile = no auth
-                ]);
-            } else {
-                $this->storeFile($file, "attachments/{$type}/{$data['id']}", [
-                    'attachable_type' => $modelClass,
-                    'attachable_id'   => $data['id'],
-                    'label'           => $request->label ?? null,
-                    'uploaded_by'     => null, // mobile = no auth
-                ]);
-            }
-            $uploaded++;
-        }
-
-        return response()->json([
-            'success'  => true,
-            'uploaded' => $uploaded,
-            'message'  => "{$uploaded} file(s) uploaded successfully.",
+            'token'        => $token,
+            'type'         => $data['type'],
+            'id'           => $model->id,
+            'pending'      => false,
+            'title'        => $data['type'] === 'invoice' ? ('Invoice ' . $model->invoice_no) : ('Stock — ' . $model->model),
+            'subtitle'     => $data['type'] === 'invoice' ? $model->customer_name : $model->imei,
+            'labelOptions' => $data['type'] === 'invoice' ? $invoiceLabels : $purchaseLabels,
+            'continueUrl'  => route($routeName, $model->id),
         ]);
     }
 

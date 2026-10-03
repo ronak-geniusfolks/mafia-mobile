@@ -225,6 +225,7 @@
                             'attachable'     => $invoice,
                             'attachableType' => 'invoice',
                             'attachableId'   => $invoice->id,
+                            'qrFromContext'  => 'invoice-edit',
                         ])
                     </div>
                 </div>

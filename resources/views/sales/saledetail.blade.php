@@ -144,6 +144,7 @@ $currentDate = Carbon::now();
                     'attachable'     => $sale,
                     'attachableType' => 'invoice',
                     'attachableId'   => $sale->id,
+                    'qrFromContext'  => 'saledetail',
                 ])
 
             </div>

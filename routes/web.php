@@ -112,6 +112,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/invoice/edit/{id}', [InvoiceController::class, 'editInvoice'])->middleware('permission:invoices.edit')->name('invoice-edit');
     Route::post('/admin/invoice/update/{id}', [InvoiceController::class, 'updateInvoice'])->middleware('permission:invoices.edit')->name('invoice-update');
     Route::post('/admin/invoice/delete/{id}', [InvoiceController::class, 'deleteInvoice'])->middleware('permission:invoices.delete')->name('invoice-delete');
+    Route::post('/admin/invoice/draft/{token}', [InvoiceController::class, 'saveDraft'])->middleware('permission:invoices.create')->name('invoice.save-draft');
 });
 
 // Reports
@@ -209,6 +210,8 @@ Route::middleware(['auth'])->prefix('attachments')->name('attachments.')->group(
         ->name('export');
 });
 
-// Public routes — no login needed (for mobile QR code upload)
-Route::get('/mobile-upload/{token}', [AttachmentController::class, 'mobileUploadPage'])->name('attachments.mobile-upload');
-Route::post('/mobile-upload/{token}', [AttachmentController::class, 'mobileUploadStore'])->name('attachments.mobile-store');
+// Mobile QR code entry point — requires login (redirects to the real invoice/
+// stock screen the QR was generated from once signed in).
+Route::middleware(['auth'])->group(function () {
+    Route::get('/mobile-upload/{token}', [AttachmentController::class, 'mobileUploadPage'])->name('attachments.mobile-upload');
+});

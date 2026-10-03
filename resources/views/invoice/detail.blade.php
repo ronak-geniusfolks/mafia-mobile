@@ -390,6 +390,7 @@
                     'attachable'     => $invoice,
                     'attachableType' => 'invoice',
                     'attachableId'   => $invoice->id,
+                    'qrFromContext'  => 'invoice-detail',
                 ])
             </div>
         </div>
