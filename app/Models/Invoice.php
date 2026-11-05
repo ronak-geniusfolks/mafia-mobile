@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,5 +23,25 @@ class Invoice extends Model
     public function purchase()
     {
         return $this->belongsTo(Purchase::class, 'item_id', 'id');
+    }
+
+    /**
+     * Get all items for this invoice.
+     */
+    public function items()
+    {
+        return $this->hasMany(InvoiceItem::class);
+    }
+
+    /** Attachments (documents) linked to this invoice */
+    public function attachments()
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
+    }
+
+    /** Hide deleted rows everywhere you use ->notDeleted() */
+    public function scopeNotDeleted($q)
+    {
+        return $q->where('deleted', 0);
     }
 }

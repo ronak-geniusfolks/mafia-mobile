@@ -8,204 +8,360 @@
         body {
             font-family: 'Arial', sans-serif;
             color: #333;
+            margin: 0;
+            padding: 0;
         }
 
         .page-container {
-            display: flex;
-            justify-content: center;   /* Horizontal center */
-            align-items: center;       /* Vertical center */
-            min-height: 100vh;         /* Full viewport height */
-            background: #f5f5f5;       /* Optional: light background around invoice */
-            padding: 20px;             /* Some breathing space */
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            background: #fff;
+            position: relative;
         }
+
 
         .invoice-box {
-            max-width: 900px;
-            margin: auto;
-            padding: 25px 30px;
-            border: 1px solid #eee;
-            box-shadow: 0 0 10px rgba(0, 0, 0, .1);
-            background: #fff;
-            border-radius: 6px;
+            width: 100%;
+            padding: 15mm;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 2;
         }
 
-        .invoice-box h2 {
-            text-align: center;
-            margin-bottom: 25px;
-            color: #0986c6;
+        /* ---------- DECORATIVE HEADER ---------- */
+        .decorative-header {
+            border: 2px solid #000;
+            padding: 8px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .decorative-border {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            font-weight: bold;
             letter-spacing: 1px;
         }
 
-        /* ---------- HEADER SECTION ---------- */
-        .invoice-header {
+        .border-text {
+            background: #000;
+            color: #fff;
+            padding: 4px 12px;
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .central-logo {
+            width: 100px;
+            height: 100px;
+            /* border: 2px solid #000; */
+            /* border-radius: 50%; */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            margin: 0 15px;
+            overflow: hidden;
+        }
+
+        .central-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .invoice-body {
+            border: 1px solid #000;
+            padding: 10px;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ---------- BILL OF SUPPLY SECTION ---------- */
+        .bill-of-supply {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #0986c6;
-            margin-bottom: 20px;
+            font-size: 12px;
+            margin-bottom: 10px;
         }
 
-        /* Left block (Logo + Address stacked) */
-        .company-block {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
+        .bill-left {
+            flex: 1;
+            text-align: center;
         }
 
-        .company-logo {
-            max-height: 50px;   /* Balanced logo size */
-            margin-bottom: 8px; /* Space between logo and text */
-        }
-
-        .company-address h2 {
-            margin: 0 0 5px;
+        .bill-title {
             font-size: 18px;
             font-weight: bold;
-            color: #0986c6;
+            text-decoration: underline;
+            margin-bottom: 5px;
         }
 
-        .company-address p {
-            margin: 0;
-            font-size: 13px;
-            line-height: 20px;
-            color: #444;
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
         }
 
-        /* Right block (Invoice details) */
-        .invoice-details {
-            background: #f5f9fc;
-            padding: 12px 18px;
-            border-radius: 6px;
-            font-size: 14px;
-            line-height: 22px;
-            min-width: 220px;
-            box-shadow: 0 0 4px rgba(0,0,0,0.05);
+        .gst-info {
+            font-size: 12px;
+            margin-bottom: 0;
         }
 
-        .invoice-details p {
-            margin: 4px 0;
+        .bill-right {
+            flex: 1;
+            text-align: left;
+            align-items: center;
         }
 
-        .invoice-details b {
-            color: #0986c6;
+        .company-info-line {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 3px;
+            line-height: 1.4;
         }
 
-        /* ---------- TABLES ---------- */
-        table {
+        .company-info-line strong {
+            width: 80px; /* fixed width to align titles */
+            display: inline-block;
+        }
+
+        .company-info-line span {
+            flex: 1;
+        }
+
+        /* ---------- INVOICE DETAILS SECTION ---------- */
+        .invoice-details-section {
+            margin-bottom: 20px;
+        }
+
+        .details-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            font-size: 12px;
+            border: 1px solid #000; /* outer border */
         }
 
-        table th {
-            background: #0986c6;
-            color: #fff;
-            padding: 10px;
+        .details-table td {
+            padding: 6px 8px;
+            border: 1px solid #000; /* gives neat box grid like your screenshot */
+        }
+
+        .details-table .label {
+            font-weight: bold;
+            width: 25%;
+        }
+
+        /* ---------- ITEMIZED BILLING TABLE ---------- */
+        .billing-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+
+        .billing-table th {
+            border: 1px solid #000;
+            padding: 8px 4px;
             text-align: center;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-weight: bold;
+            background: #f0f0f0;
         }
 
-        table td {
-            border: 1px solid #eee;
-            padding: 10px;
-            font-size: 14px;
+        .billing-table td {
+            border: 1px solid #000;
+            padding: 8px 4px;
+            text-align: center;
         }
 
-        table tr:nth-child(even) {
-            background: #fafafa;
+        .billing-table .description {
+            text-align: left;
         }
 
-        .totals td {
+        .billing-table .imei {
+            font-size: 10px;
+            color: #666;
+        }
+
+        /* ---------- SUMMARY SECTION ---------- */
+        .summary-section {
+            text-align: right;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 3px;
+        }
+
+        .summary-label {
+            width: 120px;
+            text-align: right;
+            padding-right: 10px;
+        }
+
+        .summary-value {
+            width: 100px;
             text-align: right;
             font-weight: bold;
-            background: #f1f8fc;
         }
 
-        /* ---------- AMOUNT IN WORDS ---------- */
-        .amount-words {
-            padding: 12px;
-            background: #f5f5f5;
-            font-weight: bold;
-            margin-bottom: 20px;
-            border-left: 4px solid #0986c6;
-            font-size: 14px;
-        }
-
-        /* ---------- TERMS & FOOTER ---------- */
-        .terms {
+        /* ---------- PAYMENT DETAILS ---------- */
+        .payment-details {
+            margin-bottom: 15px;
             font-size: 12px;
-            line-height: 18px;
-            border-top: 2px solid #0986c6;
-            padding-top: 12px;
         }
 
-        .terms h4 {
-            color: #ed1547;
-            margin-bottom: 8px;
+        .payment-row {
+            display: flex;
+            margin-bottom: 5px;
         }
 
-        .terms ul {
-            margin: 0;
-            padding-left: 18px;
-        }
-
-        .terms li {
-            margin-bottom: 6px;
-        }
-
-        .gst-notes {
-            margin-top: 20px;
-            padding: 15px 20px;
-            background: #f9f9f9;
-            border-left: 4px solid #0986c6;
-            border-radius: 4px;
-            font-size: 12px;
-            line-height: 18px;
-            color: #444;
-        }
-
-        .gst-notes h4 {
-            margin: 0 0 10px;
-            font-size: 14px;
-            color: #0986c6;
+        .payment-label {
+            width: 150px;
             font-weight: bold;
         }
 
-        .gst-notes ul {
-            margin: 0;
-            padding-left: 18px;
+        /* ---------- TERMS & CONDITIONS ---------- */
+        .terms-signature-section {
+            display: block;
+            margin-bottom: 15px;
         }
 
-        .gst-notes li {
+        .terms-box {
+            width: 100%;
+            background: #f8f9fb;
+            border-left: 3px solid #444;
+            padding: 10px 14px;
+            font-size: 10px;
+            line-height: 1.45;
+            box-sizing: border-box;
+            margin-bottom: 14px;
+        }
+
+        .terms-header {
             margin-bottom: 6px;
         }
 
-        .footer {
+        .terms-header h5 {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin: 0;
+            color: #111;
+        }
+
+        .terms-box ul {
+            margin: 0;
+            padding-left: 15px;
+        }
+
+        .terms-box li {
+            margin-bottom: 2px;
+            color: #333;
+        }
+
+        .signature-section {
+            text-align: right;
+        }
+
+        .signature-text {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 28px;
+            display: block;
+        }
+
+        .authorized-signatory {
+            font-size: 11px;
+            font-weight: bold;
+            border-top: 1px solid #444;
+            display: inline-block;
+            padding-top: 5px;
+            min-width: 160px;
             text-align: center;
-            font-weight: bold;
-            margin-top: 35px;
-            font-size: 14px;
+            color: #333;
+        }
+
+        /* ---------- DUAL SIGNATURES ---------- */
+        .signatures-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 10px;
+        }
+        .sig-box {
+            width: 44%;
+            text-align: center;
+        }
+        .sig-space {
+            height: 36px;
+        }
+        .sig-line {
+            border-top: 1px solid #444;
+            padding-top: 4px;
+            font-size: 10px;
+            font-weight: 800;
+            text-align: center;
+            color: #222;
+        }
+        .sig-label {
+            font-size: 8.5px;
             color: #555;
-        }
-
-        .thanks-text {
             text-align: center;
-            font-weight: 700;
-            font-size: 15px;
-            margin-top: 25px;
-            margin-bottom: 10px;
-            color: #0986c6;
+            margin-top: 2px;
+            font-style: italic;
         }
 
+        /* ---------- FOOTER ---------- */
+        .footer-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #000;
+            padding-top: 10px;
+            font-size: 10px;
+        }
+
+        .footer-left {
+            flex: 1;
+        }
+
+        .footer-right {
+            flex: 1;
+            text-align: right;
+        }
+
+        .footer-logo {
+            width: 60px;
+            height: 60px;
+            display: inline-block;
+        }
+
+        .footer-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
 
         /* ---------- PRINT FIXES ---------- */
+        .print-top-margin {
+            height: 0;
+        }
+
         @media print {
             @page {
                 size: A4;
-                margin: 10mm; /* give clean page margins */
+                margin: 0;
             }
 
             body {
@@ -216,183 +372,262 @@
             }
 
             .page-container {
-                /* display: block !important; */
-                /* padding: 0 !important; */
-                background: #fff !important;
-                /* min-height: auto !important; */
+                width: 100%;
+                min-height: 100vh;
+                margin: 0;
+                padding: 0;
             }
 
+            /* Reduced padding to gain vertical space */
             .invoice-box {
-                /* margin: 0 auto !important; */
-                /* box-shadow: none !important; */
-                border: none !important;
-                /* border-radius: 0 !important; */
-                /* width: 100% !important; */
-                /* padding: 10mm; controlled padding inside */
+                padding: 10mm 12mm;
             }
 
-            .invoice-details,
-            table th,
-            .amount-words,
-            .terms h4,
-            .gst-notes {
-                -webkit-print-color-adjust: exact !important;
-                color-adjust: exact !important;
+            /* Stamp paper top margin */
+            .print-top-margin {
+                height: 200px;
             }
 
-            /* shrink text a bit to avoid page break */
-            .terms,
-            .gst-notes {
-                font-size: 11px !important;
-                line-height: 16px !important;
-            }
-
-            .thanks-text {
-                margin-top: 15px !important;
-            }
+            /* ── Tighten every section to stay on 1 page ── */
+            .bill-of-supply       { margin-bottom: 5px; }
+            .company-name         { font-size: 20px; margin-bottom: 4px; }
+            .bill-title           { font-size: 15px; margin-bottom: 3px; }
+            .gst-info             { font-size: 11px; }
+            .invoice-details-section { margin-bottom: 6px; }
+            .details-table td     { padding: 3px 6px; font-size: 11px; }
+            .billing-table        { margin-bottom: 6px; }
+            .billing-table th,
+            .billing-table td     { padding: 5px 3px; font-size: 11px; }
+            .summary-section      { margin-bottom: 5px; }
+            .summary-row          { margin-bottom: 2px; }
+            .summary-label,
+            .summary-value        { font-size: 11px; }
+            .payment-details      { margin-bottom: 5px; }
+            .payment-row          { margin-bottom: 2px; font-size: 11px; }
+            .terms-signature-section { margin-bottom: 5px; }
+            .terms-box            { padding: 6px 10px; font-size: 8.5px; line-height: 1.27; margin-bottom: 0; }
+            .terms-box li         { margin-bottom: 1px; }
+            .terms-header         { margin-bottom: 4px; }
+            .terms-header h5      { font-size: 10px; }
+            .signatures-row       { margin-top: 6px; }
+            .sig-space            { height: 30px; }
+            .footer-section       { padding-top: 5px; }
+            .company-info-line    { margin-bottom: 2px; font-size: 11px; }
         }
     </style>
 
-    <div class="page-container">
-        <div class="invoice-box">
-            <h2>RECEIPT</h2>
+    @php
+        $companyName = 'Mafia Mobile'; // Default company name
+        $companyNameUpper = strtoupper($companyName);
+    @endphp
 
-            <div class="invoice-header">
-                <!-- Left Side (Logo + Address) -->
-                <div class="company-block">
-                    <img src="{{asset('assets/images/new_logo/main_logo.png')}}" alt="Logo" class="company-logo">
-                    <div class="company-address">
-                        <p>
-                            Shop No.112, 1st Floor, Shivalik Platinum,<br>
-                            Opp. Chief Justice Bunglow,<br>
-                            Bodakdev, Ahmedabad - 380054<br>
-                            <b>GSTIN:</b> 24BNEPT8042H1ZU<br>
-                            <b>Mo:</b> +91 89898 09797, +91 89899 05757
-                        </p>
+    <div class="page-container">
+        <!-- Add 200px top margin for company stamp paper - only when printing -->
+        <div class="print-top-margin"></div>
+
+        <div class="invoice-box">
+            <div class="invoice-body">
+                <!-- Bill of Supply Section -->
+                <div class="bill-of-supply">
+                    <div class="bill-left">
+                        <div class="bill-title">BILL OF SUPPLY</div>
+                        <div class="company-name">{{ $companyName }}</div>
+                        <div class="gst-info">
+                            <strong>GST NO:</strong> 24DTVPD2928H1ZG<br>
+                            Not eligible to collect tax on supplies
+                        </div>
+                    </div>
+
+                    <div class="bill-right">
+                        <div class="company-info-line">
+                            <strong>Address:</strong>
+                            <span>GF-04, Parth Avenue, Nr. ONGC Avani Bhavan, Chandkheda, Ahmedabad - 380005.</span>
+                        </div>
+                        <div class="company-info-line">
+                            <strong>Contact Us:</strong>
+                            <span>+91 8901606060</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Right Side (Invoice Details) -->
-                <div class="invoice-details">
-                    <p><b>Receipt No:</b> #{{ $invoice->invoice_no }}</p>
-                    <p><b>Date:</b> {{ date("d/m/Y", strtotime($invoice->invoice_date)) }}</p>
-                    @if($invoice->warranty_expiry_date)
-                        <p><b>Warranty Expiry:</b> {{ date("d/m/Y", strtotime($invoice->warranty_expiry_date)) }}</p>
+                <!-- Invoice and Client Details -->
+                <div class="invoice-details-section">
+                    <table class="details-table">
+                        <tr>
+                            <td class="label">Date of Invoice:</td>
+                            <td>{{ date("j F, Y", strtotime($invoice->invoice_date)) }}</td>
+                            <td class="label">Invoice No.:</td>
+                            <td>{{ $invoice->invoice_no }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Client Name:</td>
+                            <td>{{ strtoupper($invoice->customer_name) }}</td>
+                            <td class="label">Address:</td>
+                            <td>{{ strtoupper($invoice->customer_address ?? 'N/A') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">City & State:</td>
+                            <td>AHMEDABAD</td>
+                            <td class="label">Contact Number:</td>
+                            <td>{{ $invoice->customer_no ?? 'N/A' }}</td>
+                        </tr>
+                        <tr >
+                            <td class="label">BILED BY:</td>
+                            <td colspan="3">Mr {{ $invoice->user->name ?? 'Admin' }}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Itemized Billing Table -->
+                <table class="billing-table">
+                    <thead>
+                        <tr>
+                            <th>Sr No</th>
+                            <th>Description of Item</th>
+                            <th>Quantity</th>
+                            <th>Rate</th>
+                            <th>Amount in Rs.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($invoice->items as $index => $item)
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td class="description">
+                                @php
+                                    $itemDescription = str_replace('IMEI: ' . $item->purchase->imei, '', $item->item_description);
+                                @endphp
+                                {{ $itemDescription }}
+                                @if($item->purchase && $item->purchase->imei)
+                                    <div class="imei">IMEI: {{ $item->purchase->imei }}</div>
+                                @endif
+                            </td>
+                            <td>{{ $item->quantity ?? 1 }} Unit</td>
+                            <td>₹{{ number_format($item->unit_price, 2) }}</td>
+                            <td>₹{{ number_format($item->total_amount, 2) }}</td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="text-center">No items found</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+
+                <!-- Summary Section -->
+                <div class="summary-section">
+                    <div class="summary-row">
+                        <div class="summary-label">Sub Total:</div>
+                        <div class="summary-value">₹{{ number_format($invoice->total_amount, 2) }}</div>
+                    </div>
+                    @if($invoice->discount > 0)
+                    <div class="summary-row">
+                        <div class="summary-label">Discount (-) :</div>
+                        <div class="summary-value">₹{{ number_format($invoice->discount, 2) }}</div>
+                    </div>
+                    @endif
+                    @if($invoice->cgst_amount > 0)
+                    <div class="summary-row">
+                        <div class="summary-label">CGST:</div>
+                        <div class="summary-value">₹{{ number_format($invoice->cgst_amount, 2) }}</div>
+                    </div>
+                    @endif
+                    @if($invoice->sgst_amount > 0)
+                    <div class="summary-row">
+                        <div class="summary-label">SGST:</div>
+                        <div class="summary-value">₹{{ number_format($invoice->sgst_amount, 2) }}</div>
+                    </div>
+                    @endif
+                    @if($invoice->igst_amount > 0)
+                    <div class="summary-row">
+                        <div class="summary-label">IGST:</div>
+                        <div class="summary-value">₹{{ number_format($invoice->igst_amount, 2) }}</div>
+                    </div>
+                    @endif
+                    <div class="summary-row">
+                        <div class="summary-label">Gross Total:</div>
+                        <div class="summary-value">₹{{ number_format($invoice->net_amount, 2) }}</div>
+                    </div>
+                </div>
+
+                <!-- Payment Details -->
+                <div class="payment-details">
+                    <div class="payment-row">
+                        <div class="payment-label">Mode of Payment:</div>
+                        <div>{{ ucfirst($invoice->payment_type) }}</div>
+                    </div>
+                    {{-- <div class="payment-row">
+                        <div class="payment-label">Ref Number:</div>
+                        <div></div>
+                    </div>
+                    <div class="payment-row">
+                        <div class="payment-label">Balance Amount Payable:</div>
+                        <div></div>
+                    </div> --}}
+                    <div class="payment-row">
+                        <div class="payment-label">Total Amount In Words:</div>
+                        <div>{{ $amountInWords }}</div>
+                    </div>
+                    @if($invoice->declaration)
+                        <div class="payment-row">
+                            <div class="payment-label">Additional Note:</div>
+                            <div>{{ $invoice->declaration ?? 'N/A' }}</div>
+                        </div>
                     @endif
                 </div>
-            </div>
 
-            <div>
-                <b>Bill To:</b>
-                {{ $invoice->customer_name }}<br>
-                @if($invoice->customer_no) <b>Mobile:</b> {{$invoice->customer_no}} @endif
-            </div>
+                <!-- Terms & Conditions with Signature Section -->
+                <div class="terms-signature-section">
+                    <div class="terms-box">
+                        <div class="terms-header">
+                            <h5>Terms & Conditions</h5>
+                        </div>
+                        <ul>
+                            <li>All devices comes with limited 3-Month Mafia Mobile Warranty, which covers hardware malfunction and issue, Battery health is covered under warranty only in case of "Mandatory Service Request" Message. No warranty on Physical & Water Damage.</li>
+                            <li>Once the Invoice is generated, the product shall remain non-returnable and any payment so made shall be Non Refundable.</li>
+                            <li>Once the Invoice is generated, the product is non-refundable &amp; non-returnable. If under any condition Return eligible after purchase 15 to 20% amount will be deducted.</li>
+                            <li>Mafia Mobile as a firm is engaged in Sale/Buy/Exchange of Active Second hand devices. We Declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</li>
+                            <li>Value of supply is Determined in accordance to section 15(5) of the central goods and services tax act read with rule 32(5) of "determination of the value of supply "The credit for GST input shall not be available to the buyer if buyer follow the same valuation rule.</li>
+                            <li>All service and support to be provided by Authorized Apple store.</li>
+                            <li>All devices comes with mentioned warranty, which covers hardware malfunction and issues.</li>
+                            <li>Battery health is covered under warranty only in case of "Mandatory Service Required" message.</li>
+                            <li>Older variants which got discontinued comes with minor modifications from company itself, so Mafia Mobile is not liable for those things.</li>
+                            <li>Android comes with no waaranty. Android phones comes with some services providors logo, as they have colboration with companies for free 1 year network.</li>
+                            <li>Mafia Mobile shall not be held liable or responsible for any green line or black dot appearing on any mobile devices.</li>
+                            <li>All our devices are global products. So android has no warranty &amp; if eligible apple product has available mentioned warranty.</li>
+                            <li>All Devices are Pre-Owned. All devices are activated. No warranty on physical &amp; water damage.</li>
+                            <li>If Apple warranty is available on device then Mafia Mobile is not responsible for it.</li>
+                            <li>Rule 32 R.W.S section 15 of CGST Act, 2017</li>
+                            <li>By purchasing our product, you agree that we may post your story on social media.</li>
+                        </ul>
+                    </div>
+                    <!-- Dual Signature Row -->
+                    <div class="signatures-row">
+                        <div class="sig-box">
+                            <div class="sig-space"></div>
+                            <div class="sig-line">Customer Signature</div>
+                            <div class="sig-label">Name &amp; Date</div>
+                        </div>
+                        <div class="sig-box">
+                            <div class="sig-space"></div>
+                            <div class="sig-line">Authorized Signatory</div>
+                            <div class="sig-label">For, {{ $companyName }}</div>
+                        </div>
+                    </div>
+                </div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Particulars</th>
-                        <th>Qty</th>
-                        <th>Rate</th>
-                        <th>Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td align="center">1</td>
-                        <td>@php echo nl2br($invoice->item_description) @endphp</td>
-                        <td align="center">1</td>
-                        <td align="right">₹{{ $invoice->total_amount }}</td>
-                        <td align="right">₹{{ $invoice->total_amount }}</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <table>
-                <tbody>
-                    <tr class="totals">
-                        <td colspan="4">Total</td>
-                        <td>₹{{ $invoice->total_amount }}</td>
-                    </tr>
-                    @if($invoice->cgst_amount)
-                        <tr>
-                            <td colspan="4" align="right">CGST ({{$invoice->cgst_rate}}%)</td>
-                            <td align="right">₹{{ $invoice->cgst_amount }}</td>
-                        </tr>
-                    @endif
-                    @if($invoice->sgst_amount)
-                        <tr>
-                            <td colspan="4" align="right">SGST ({{$invoice->sgst_rate}}%)</td>
-                            <td align="right">₹{{ $invoice->sgst_amount }}</td>
-                        </tr>
-                    @endif
-                    @if($invoice->discount)
-                        <tr>
-                            <td colspan="4" align="right">Discount</td>
-                            <td align="right"> ₹{{ $invoice->discount }}</td>
-                        </tr>
-                    @endif
-                    <tr class="totals">
-                        <td colspan="4">Net Total</td>
-                        <td>₹{{ $invoice->net_amount }}</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="amount-words">
-                Amount (in words): {{ $amountInWords }}
-            </div>
-
-            <div class="terms">
-                <h4>Terms & Conditions</h4>
-                <ul>
-                    <li>પાણીથી /ભાંગ તૂટથી/ ઇલેક્ટ્રીક શોર્ટ સર્કિટથી થયેલી નુકસાની ની વોરંટી મળશે નહીં.</li>
-                    <li>કંપની વોરંટી દરમિયાન ગ્રાહકે જાતે જ કંપનીના સર્વિસ સેન્ટરમાં જવાનું રહેશે અને કંપનીનો નિર્ણય જ માન્ય
-                        ગણાશે.</li>
-                    <li>અમારી શોપ વોરંટી Expiry Date સુધી ગણાશે.</li>
-                    <li>અમારી વોરંટી દરમિયાન ફોનમાં કોઈ ખામી આવે તો તેની સર્વિસ થશે પાછું લેવા કે રિફંડ આપવામાં આવશે નહીં.</li>
-                    <li>ફોન લીધા બાદ જો રીટર્ન આપવું હશે કે એક્સચેન્જ કરવું હશે તો અમે આપેલા ભાવ જ માન્ય ગણાશે - ભાવ બાબતે કોઈ
-                        રક-જક
-                        કરવી નહીં.</li>
-                    <li>કોઈ પણ ફોન ની બેટરી (mAh) & ફોન ના વપરાશ ઉપર આધાર રાખે છે જેથી વોરંટી દરમિયાન ચેક કર્યા બાદ જો કોઈ ખામી
-                        જણાય તો
-                        જ (સર્વિસ/ચેન્જ) કરી આપવામાં આવશે. </li>
-                    <li>ફોન લેવા કે વેચવા માટે અમે આપેલા ભાવ એક દિવસ જ માન્ય રહેશે. </li>
-                    <li>ઇન્ટરનેશનલ(ગ્લોબલ) નવા કે જુના ફોનમાં કંપનીના નિયમો બદલાતા રહેતા હોય છે જેથી જે તે સમયે કંપની વોરંટી
-                        દરમિયાન
-                        કંપનીનો નિયમ જ માન્ય રહેશે. </li>
-                    <li>ફોન લેતા સમયે ફોન પર રહેલા ડેન્ટ કે સ્ક્રેચ ચકાસીને લેવા પછીથી આ બાબતે અમારી કોઇ જવાબદારી રહેશે નહીં.
-                    </li>
-                    <li>ફોન લીધા બાદ 24 કલાકની અંદર કંપનીના સર્વિસ સેન્ટરમાં ચેક કરાવી લેવું (જેમકે રીપેર થયેલ છે કે નહીં
-                        પાર્ટ્સ ચેન્જ
-                        છે કે નહીં બહાર ઓપન કરાવેલ છે કે નહીં વગેરે) પછીથી આ બાબતે અમારી કોઇ જવાબદારી રહેશે નહીં.</li>
-                    <li>રિપ્લેસમેન્ટ વખતે જે મોડલ ખરીદેલ હશે સામે બીજું સેમ મોડેલ જ મળશે.</li>
-                    <li>Display માં લાઈન-ડોટ-કલર ચેન્જ કે બીજી અન્ય તકલીફ માં વોરંટી મળશે નહીં.</li>
-                    <li>Android ઇન્ટરનેશનલ ફોનમાં 5G નેટવર્ક બેન્ડ અલગ આવતા હોવાથી 5G ચાલવા કે ના ચાલવાની જવાબદારી મળતી નથી.
-                    </li>
-                </ul>
-            </div>
-
-            <div class="gst-notes">
-                <h4>GST & HSN Notes</h4>
-                <ul>
-                    <li>GST on Refurbished mobile phone (HSN Code 8517) and Refurbished Laptop / Desktop (HSN Code: 8471) has been
-                        charged under the margin scheme of GST.</li>
-                    <li>For HSN code: 8517 (Refurbished Mobile phones) and HSN Code: 8471 (Refurbished Laptop / Desktop), value of
-                        supply is determined in accordance with Section 15(5) of the Central Goods and Services Tax Act read with
-                        Rule 32(5) of “Determination of the value of supply”. The credit for GST input shall not be available to the
-                        buyer if buyer follows the same valuation rule.</li>
-                    <li>For HSN code 8517 (other than refurbished Mobile), GST is charged as per the prescribed rate on the full
-                        value of the product, for which input credit shall be available to the registered buyer.</li>
-                </ul>
-            </div>
-
-            <div class="thanks-text">
-                ✨ Thanks for Visit! ✨
-            </div>
-            <div class="footer">
-                Authorised Signatory<br><b>Vision Mobile</b>
+                <!-- Footer Section -->
+                <div class="footer-section">
+                    <div class="footer-left">
+                        <strong>GST: 24DTVPD2928H1ZG </strong><br>
+                        GF-04, Parth Avenue, Nr. ONGC Avani Bhavan, Chandkheda, Ahmedabad. 8901606060
+                    </div>
+                    <div class="footer-right">
+                        <div class="footer-logo">
+                            <img src="{{asset('assets/images/new_logo/main_logo.png')}}" alt="Company Logo">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

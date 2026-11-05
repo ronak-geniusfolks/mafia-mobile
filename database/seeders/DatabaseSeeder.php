@@ -1,11 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
-use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Database\Seeders\SuperAdminSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,6 +17,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PaymentMethodsSeeder::class,
             SuperAdminSeeder::class,
+            AddInvoiceDeletePermissionSeeder::class,
+            AddBillPermissionsSeeder::class,
+            AddDealerPaymentPermissionsSeeder::class,
         ]);
     }
 }

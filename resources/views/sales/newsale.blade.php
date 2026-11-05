@@ -37,8 +37,8 @@
                             <form class="form-horizontal" method="post" enctype="multipart/form-data" action="{{ route('save-sale')}}">
                                 @csrf
                                 <input type="hidden" name="userid" value="{{ auth()->user()->id }}" />
-                                {{--<div class="form-group row mb-3">
-                                    <label for="salemodel" class="col-12 col-md-3 col-form-label">Model*</label>
+                                <div class="form-group row mb-3">
+                                    <label for="salemodel" class="col-12 col-md-3 col-form-label p-0">Model*</label>
                                     <div class="col-12 col-md-9 p-0">
                                         <select class="form-control border-bottom" id="salemodel" name="stock_id" value="{{old('stock_id')}}" required tabindex="1">
                                             <option value="" selected>-- Please Select Model --</option>
@@ -48,7 +48,6 @@
                                         </select>
                                     </div>
                                 </div>
-                                --}}
                                 <div class="form-group row mb-3">
                                     <label for="color" class="col-12 col-md-3 col-form-label p-0">IMEI:</label>
                                     <div class="col-12 col-md-9 p-0">

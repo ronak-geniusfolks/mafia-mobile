@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
@@ -13,8 +15,6 @@ class SaleController extends Controller
     //
     public function index(Request $request)
     {
-        // $allSales = Sale::where('deleted', 0)->orderBy('saledate', 'desc')->get();
-        // echo $count = Purchase::where('is_sold', 0)->count();
         $search = $request->input('search');
         $year = $request->input('year');
         $sortDirection = $request->input('direction', 'desc');
@@ -22,28 +22,26 @@ class SaleController extends Controller
         $storage = $request->input('storage');
         $paymentType = $request->input('paymentType');
         $allSales = Invoice::query()
-            ->when($search, function ($query, $search): void {
-                $query->where(function ($q) use ($search): void {
-                    $q->where('id', 'like', "%{$search}%")
-                        ->orWhere('item_description', 'like', "%{$search}%")
-                        ->orWhere('customer_name', 'like', "%{$search}%");
+            ->with('items')
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('id', 'like', "%{$search}%")
+                        ->orWhere('customer_name', 'like', "%{$search}%")
+                        ->orWhereHas('items', function ($qi) use ($search) {
+                            $qi->where('item_description', 'like', "%{$search}%");
+                        });
                 });
             })
-            ->when($year, function ($query) use ($year): void {
-                $query->whereYear('created_at', $year);
+            ->when($year, fn ($q) => $q->whereYear('created_at', $year))
+            ->when($storage, function ($q) use ($storage) {
+                // filter by item_description from related items
+                $q->whereHas('items', fn ($qi) => $qi->where('item_description', 'like', "%{$storage}%"));
             })
-            ->when($storage, function ($query) use ($storage): void {
-                $query->where('item_description', 'like', "%{$storage}%");
-            })
-            ->when($paymentType, function ($query) use ($paymentType): void {
-                $query->where('payment_type', $paymentType);
-            })
+            ->when($paymentType, fn ($q) => $q->where('payment_type', $paymentType))
             ->where('deleted', 0)
             ->orderBy('id', $sortDirection)
-            // ->orderBy('net_amount', $netAmoutSort)
             ->paginate(10);
 
-        // $allSales = Invoice::where('deleted', 0)->orderBy('created_at', 'desc')->paginate(10);
         return view('sales.index', [
             'allSales' => $allSales,
             'year' => $year,
@@ -57,17 +55,16 @@ class SaleController extends Controller
 
     public function saleDetail($id)
     {
-        // $sale = Sale::findOrFail($id);
         $sale = Invoice::findOrFail($id);
-        // $purchasePrice = Purchase::findOrFail($sale->item_id)->purchase_price;
+        $totalProfit = $sale->items->sum('profit');
         $soldBy = User::findOrFail($sale->invoice_by);
 
-        return view('sales.saledetail', ['sale' => $sale, 'soldBy' => $soldBy]);
+        return view('sales.saledetail', ['sale' => $sale, 'soldBy' => $soldBy, 'totalProfit' => $totalProfit]);
     }
 
     public function newSale()
     {
-        $stocksModel = Purchase::where('is_sold', 0)->get();
+        $stocksModel = Purchase::where(['is_sold' => 0, 'deleted' => 0])->get();
 
         return view('sales.newsale', ['stockModels' => $stocksModel]);
     }
@@ -94,7 +91,7 @@ class SaleController extends Controller
         $sale->saleprice = $request->saleprice;
         $sale->stock_id = $stockData->id;
         Purchase::findOrFail($request->stock_id)->update(['is_sold' => 1]);
-        $profit = floatval($request->saleprice - $stockData->purchase_price);
+        $profit = (float) ($request->saleprice - $stockData->purchase_price);
         $sale->profit = $profit;
         $sale->user_id = $request->userid;
         $sale->imei = $stockData->imei;
@@ -108,8 +105,8 @@ class SaleController extends Controller
     public function deleteSale($id)
     {
         $sale = Invoice::findOrFail($id)->update(['deleted' => 1]);
-        $stockId = Invoice::findOrFail($id)->item_id;
-        Purchase::findOrFail($stockId)->update(['is_sold' => 0]); // Update stock available
+        $stockIds = Invoice::with('items')->findOrFail($id)->items->pluck('item_id');
+        Purchase::whereIn('id', $stockIds)->update(['is_sold' => 0]); // Update stock available
 
         return redirect()->route('allsales')->withStatus('Sale Deleted Successfully..');
     }
@@ -117,7 +114,7 @@ class SaleController extends Controller
     public function fetchModelData($imei)
     {
         // $purchase = Purchase::where('imei', $imei)->first();
-        $stock = Purchase::where('imei', 'LIKE', "{$imei}%")
+        $stock = Purchase::where('imei', 'LIKE', "%{$imei}%")
             ->where('is_sold', 0)
             ->first();
         $count = $stock ? 1 : 0;

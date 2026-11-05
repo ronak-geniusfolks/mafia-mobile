@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
+use App\Models\Expense;
 use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\Purchase;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -16,78 +20,97 @@ class ReportController extends Controller
         $period = $request->input('period');
         $totalSalesAmount = $totalProfitAmount = 0;
         $fromDate = $toDate = '';
-        if ($period == 'thismonth') {
+        if ($period === 'thismonth') {
             $startOfMonth = Carbon::now()->startOfMonth();
             $endOfMonth = Carbon::now();  // today's date)
             $allSales = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])
                 ->where('deleted', 0)
                 ->orderBy('created_at', 'desc')->paginate(10);
             $totalSalesAmount = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])->where('deleted', 0)->sum('net_amount');
-            $totalProfitAmount = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])->where('deleted', 0)->sum('profit');
+            $totalProfitAmount = InvoiceItem::whereHas('invoice', function ($query) use ($startOfMonth, $endOfMonth) {
+                $query->whereBetween('invoice_date', [$startOfMonth, $endOfMonth]);
+            })->where('deleted', 0)->sum('profit');
+            $totalExpenseAmount = Expense::whereBetween('entrydate', [$startOfMonth, $endOfMonth])->where('deleted', 0)->sum('amount');
             $timePeriod = Carbon::now()->format('F');
-        } elseif ($period == 'lastmonth') {
+        } elseif ($period === 'lastmonth') {
             $lastMonthStart = Carbon::now()->subMonth()->startOfMonth();
             $lastMonthEnd = Carbon::now()->subMonth()->endOfMonth();  // today's date)
             $allSales = Invoice::whereBetween('invoice_date', [$lastMonthStart, $lastMonthEnd])
                 ->where('deleted', 0)
                 ->orderBy('created_at', 'desc')->paginate(10);
             $totalSalesAmount = Invoice::whereBetween('invoice_date', [$lastMonthStart, $lastMonthEnd])->where('deleted', 0)->sum('net_amount');
-            $totalProfitAmount = Invoice::whereBetween('invoice_date', [$lastMonthStart, $lastMonthEnd])->where('deleted', 0)->sum('profit');
+            $totalProfitAmount = InvoiceItem::whereHas('invoice', function ($query) use ($lastMonthStart, $lastMonthEnd) {
+                $query->whereBetween('invoice_date', [$lastMonthStart, $lastMonthEnd]);
+            })->where('deleted', 0)->sum('profit');
+            $totalExpenseAmount = Expense::whereBetween('entrydate', [$lastMonthStart, $lastMonthEnd])->where('deleted', 0)->sum('amount');
             $timePeriod = Carbon::now()->subMonth()->format('F');
-        } elseif ($period == 'thisyear') {
+        } elseif ($period === 'thisyear') {
             $startOfYear = Carbon::now()->startOfYear();
             $endOfYear = Carbon::now();  // today's date)
             $allSales = Invoice::whereBetween('invoice_date', [$startOfYear, $endOfYear])
                 ->where('deleted', 0)
                 ->orderBy('created_at', 'desc')->paginate(10);
             $totalSalesAmount = Invoice::whereBetween('invoice_date', [$startOfYear, $endOfYear])->where('deleted', 0)->sum('net_amount');
-            $totalProfitAmount = Invoice::whereBetween('invoice_date', [$startOfYear, $endOfYear])->where('deleted', 0)->sum('profit');
+            $totalProfitAmount = InvoiceItem::whereHas('invoice', function ($query) use ($startOfYear, $endOfYear) {
+                $query->whereBetween('invoice_date', [$startOfYear, $endOfYear]);
+            })->where('deleted', 0)->sum('profit');
+            $totalExpenseAmount = Expense::whereBetween('entrydate', [$startOfYear, $endOfYear])->where('deleted', 0)->sum('amount');
             $timePeriod = Carbon::now()->format('Y');
-        } elseif ($period == 'lastyear') {
+        } elseif ($period === 'lastyear') {
             $startOfLastYear = Carbon::now()->subYear()->startOfYear();
             $endOfLastYear = Carbon::now()->subYear()->endOfYear();
             $allSales = Invoice::whereBetween('invoice_date', [$startOfLastYear, $endOfLastYear])
                 ->where('deleted', 0)
                 ->orderBy('created_at', 'asc')->paginate(15);
             $totalSalesAmount = Invoice::whereBetween('invoice_date', [$startOfLastYear, $endOfLastYear])->where('deleted', 0)->sum('net_amount');
-            $totalProfitAmount = Invoice::whereBetween('invoice_date', [$startOfLastYear, $endOfLastYear])->where('deleted', 0)->sum('profit');
+            $totalProfitAmount = InvoiceItem::whereHas('invoice', function ($query) use ($startOfLastYear, $endOfLastYear) {
+                $query->whereBetween('invoice_date', [$startOfLastYear, $endOfLastYear]);
+            })->where('deleted', 0)->sum('profit');
+            $totalExpenseAmount = Expense::whereBetween('entrydate', [$startOfLastYear, $endOfLastYear])->where('deleted', 0)->sum('amount');
             $timePeriod = Carbon::now()->subYear()->format('Y');
-        } elseif ($period == 'custom') {
+        } elseif ($period === 'custom') {
             $fromDate = $request->input('fromdate');
             $toDate = $request->input('todate');
-            // $lastMonthEnd = Carbon::now();  //today's date)
             $allSales = Invoice::whereBetween('invoice_date', [$fromDate, $toDate])->where('deleted', 0)->orderBy('created_at', 'desc')->paginate(15);
             $totalSalesAmount = Invoice::whereBetween('invoice_date', [$fromDate, $toDate])->where('deleted', 0)->sum('net_amount');
-            $totalProfitAmount = Invoice::whereBetween('invoice_date', [$fromDate, $toDate])->where('deleted', 0)->sum('profit');
+            $totalProfitAmount = InvoiceItem::whereHas('invoice', function ($query) use ($fromDate, $toDate) {
+                $query->whereBetween('invoice_date', [$fromDate, $toDate]);
+            })->where('deleted', 0)->sum('profit');
+            $totalExpenseAmount = Expense::whereBetween('entrydate', [$fromDate, $toDate])->where('deleted', 0)->sum('amount');
             $timePeriod = Carbon::now()->format('F');
-        } elseif ($period == 'alls') {
+        } elseif ($period === 'alls') {
             $allSales = Invoice::where('deleted', 0)
                 ->orderBy('created_at', 'desc')->paginate(10);
             $totalSalesAmount = Invoice::whereBetween('invoice_date', [Carbon::now()->startOfMonth(), Carbon::now()])
                 ->where('deleted', 0)->sum('net_amount');
-            $totalProfitAmount = Invoice::whereBetween('invoice_date', [Carbon::now()->startOfMonth(), Carbon::now()])
-                ->where('deleted', 0)->sum('profit');
+            $totalProfitAmount = InvoiceItem::whereHas('invoice', function ($query) {
+                $query->whereBetween('invoice_date', [Carbon::now()->startOfMonth(), Carbon::now()]);
+            })->where('deleted', 0)->sum('profit');
+            $totalExpenseAmount = Expense::whereBetween('entrydate', [Carbon::now()->startOfMonth(), Carbon::now()])->where('deleted', 0)->sum('amount');
             $timePeriod = Carbon::now()->format('F');
         } else {
             $allSales = Invoice::where('deleted', 0)
                 ->orderBy('created_at', 'desc')->paginate(10);
             $totalSalesAmount = Invoice::whereBetween('invoice_date', [Carbon::now()->startOfMonth(), Carbon::now()])
                 ->where('deleted', 0)->sum('net_amount');
-            $totalProfitAmount = Invoice::whereBetween('invoice_date', [Carbon::now()->startOfMonth(), Carbon::now()])
-                ->where('deleted', 0)->sum('profit');
+            $totalProfitAmount = InvoiceItem::whereHas('invoice', function ($query) {
+                $query->whereBetween('invoice_date', [Carbon::now()->startOfMonth(), Carbon::now()]);
+            })->where('deleted', 0)->sum('profit');
+            $totalExpenseAmount = Expense::whereBetween('entrydate', [Carbon::now()->startOfMonth(), Carbon::now()])->where('deleted', 0)->sum('amount');
             $timePeriod = Carbon::now()->format('F');
         }
 
         return view('reports.sales', [
             'allSales' => $allSales,
             'period' => $period,
-            'totalSalesAmount' => number_format($totalSalesAmount, 2, '.', ''),
-            'totalProfitAmount' => number_format($totalProfitAmount, 2, '.', ''),
+            'totalSalesAmount' => number_format((float) $totalSalesAmount, 2, '.', ''),
+            'totalProfitAmount' => number_format((float) $totalProfitAmount, 2, '.', ''),
             'fromdate' => $fromDate,
             'todate' => $toDate,
             'totalItems' => $allSales->total(),
             'currentMonth' => Carbon::now()->format('F'),
             'timePeriod' => $timePeriod,
+            'totalExpenseAmount' => number_format((float) $totalExpenseAmount, 2, '.', ''),
         ]);
     }
 
@@ -98,85 +121,93 @@ class ReportController extends Controller
     {
         $period = $request->input('period');
         $monthName = Carbon::now()->format('F');
-        if ($period == 'thismonth') {
+
+        // Get sales data based on the selected period
+        if ($period === 'thismonth') {
             $monthName = Carbon::now()->format('F');
-            $startOfMonth = Carbon::now()->startOfMonth();
-            $endOfMonth = Carbon::now();  // today's date)
-            $salesReport = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])
-                ->where('deleted', 0)
-                ->orderBy('created_at', 'asc')->get();
-        } elseif ($period == 'lastmonth') {
+            $start = Carbon::now()->startOfMonth();
+            $end = Carbon::now();
+        } elseif ($period === 'lastmonth') {
             $monthName = Carbon::now()->subMonth()->format('F');
-            $lastMonthStart = Carbon::now()->subMonth()->startOfMonth();
-            $lastMonthEnd = Carbon::now()->subMonth()->endOfMonth();  // today's date)
-            $salesReport = Invoice::whereBetween('invoice_date', [$lastMonthStart, $lastMonthEnd])
-                ->where('deleted', 0)
-                ->orderBy('created_at', 'asc')->get();
-        } elseif ($period == 'thisyear') {
+            $start = Carbon::now()->subMonth()->startOfMonth();
+            $end = Carbon::now()->subMonth()->endOfMonth();
+        } elseif ($period === 'thisyear') {
             $monthName = Carbon::now()->format('Y');
-            $startOfYear = Carbon::now()->startOfYear();
-            $endofYear = Carbon::now();
-            $salesReport = Invoice::whereBetween('invoice_date', [$startOfYear, $endofYear])
-                ->where('deleted', 0)
-                ->orderBy('created_at', 'asc')->get();
-        } elseif ($period == 'custom') {
-            $fromDate = $request->input('fromdate');
-            $toDate = $request->input('todate');
-            $monthName = date('d-m-Y', time());
-            $endofYear = Carbon::now();
-            $salesReport = Invoice::whereBetween('invoice_date', [$fromDate, $toDate])
-                ->where('deleted', 0)
-                ->orderBy('created_at', 'asc')->get();
+            $start = Carbon::now()->startOfYear();
+            $end = Carbon::now();
+        } elseif ($period === 'custom') {
+            $from = $request->input('fromdate');
+            $to = $request->input('todate');
+            $monthName = Carbon::parse($from)->format('d-M') . '_to_' . Carbon::parse($to)->format('d-M');
+            $start = $from;
+            $end = $to;
         } else {
-            $salesReport = Invoice::where('deleted', 0)->orderBy('id', 'asc')->get();
+            $start = null;
+            $end = null;
         }
-        $fileName = $monthName.'-sales.csv';
+
+        // Query invoices with relationships eager loaded
+        $query = Invoice::with(['items.purchase'])->where('deleted', 0);
+
+        if ($start && $end) {
+            $query->whereBetween('invoice_date', [$start, $end]);
+        }
+
+        $salesReport = $query->orderBy('created_at', 'asc')->get();
+
+        // Prepare CSV headers
+        $fileName = $monthName . '-sales.csv';
         $headers = [
-            'Content-type' => 'text/csv',
+            'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=$fileName",
             'Pragma' => 'no-cache',
             'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
             'Expires' => '0',
         ];
-        $callback = function () use ($salesReport): void {
+
+        // CSV callback generator
+        $callback = function () use ($salesReport) {
             $file = fopen('php://output', 'w+');
 
-            // Add the CSV header (modify this based on your model)
-            fputcsv($file,
-                [
-                    'ID',
-                    'Invoice No.',
-                    'Sell Date',
-                    'IMEI',
-                    'Model',
-                    'Storage (GB)',
-                    'Color',
-                    'Customer Name',
-                    'Mobile No',
-                    'Sell Price',
-                    'Profit',
-                    'Payment Mode',
-                ],
-                ';'
-            );
+            // CSV header
+            fputcsv($file, [
+                'Sr No',
+                'Invoice No.',
+                'Invoice Date',
+                'IMEI',
+                'Model',
+                'Storage (GB)',
+                'Color',
+                'Customer Name',
+                'Mobile No.',
+                'Sell Price',
+                'Profit',
+                'Payment Mode',
+            ], ';');
 
-            // Add the data rows
-            foreach ($salesReport as $key => $row) {
-                fputcsv($file, [
-                    $key + 1,
-                    $row->invoice_no,
-                    $row->invoice_date,
-                    $row->purchase->imei,
-                    $row->purchase->model,
-                    $row->purchase->storage,
-                    $row->purchase->color,
-                    $row->customer_name,
-                    $row->customer_no,
-                    $row->net_amount,
-                    $row->profit,
-                    $row->payment_type,
-                ], ';');
+            $count = 1;
+
+            foreach ($salesReport as $invoice) {
+                foreach ($invoice->items as $item) {
+                    $purchase = $item->purchase; // Purchase related to this item
+
+                    fputcsv($file, [
+                        $count++,
+                        $invoice->invoice_no,
+                        $invoice->invoice_date ? Carbon::parse($invoice->invoice_date)->format('d-m-Y') : '',
+                        $purchase->imei ?? '',
+                        $purchase->model ?? '',
+                        $purchase->storage ?? '',
+                        $purchase->color ?? '',
+                        $invoice->customer_name ?? '',
+                        $invoice->customer_no ?? '',
+                        $item->unit_price ?? 0, // prefer per-item price if available
+                        $item->profit ?? 0,
+                        $invoice->payment_type ?? '',
+                    ], ';');
+                }
             }
+
             fclose($file);
         };
 
@@ -187,28 +218,28 @@ class ReportController extends Controller
     {
         $period = $request->input('period');
         $monthName = Carbon::now()->format('F');
-        if ($period == 'thismonth') {
+        if ($period === 'thismonth') {
             $monthName = Carbon::now()->format('F');
             $startOfMonth = Carbon::now()->startOfMonth()->format('Y-m-d');
             $endOfMonth = Carbon::now()->format('Y-m-d');  // today's date)
             $allSales = Purchase::whereBetween('purchase_date', [$startOfMonth, $endOfMonth])
                 ->where('deleted', 0)
                 ->orderBy('created_at', 'asc')->get();
-        } else if ($period == 'lastmonth') {
+        } elseif ($period === 'lastmonth') {
             $monthName = Carbon::now()->subMonth()->format('F');
             $lastMonthStart = Carbon::now()->subMonth()->startOfMonth()->format('Y-m-d');
             $lastMonthEnd = Carbon::now()->subMonth()->endOfMonth()->format('Y-m-d');  // today's date)
             $allSales = Purchase::whereBetween('purchase_date', [$lastMonthStart, $lastMonthEnd])
                 ->where('deleted', 0)
                 ->orderBy('created_at', 'asc')->get();
-        } else if ($period == 'thisyear') {
+        } elseif ($period === 'thisyear') {
             $monthName = Carbon::now()->format('Y');
             $startOfYear = Carbon::now()->startOfYear()->format('Y-m-d');
             $endOfYear = Carbon::now()->format('Y-m-d');
             $allSales = Purchase::whereBetween('purchase_date', [$startOfYear, $endOfYear])
                 ->where('deleted', 0)
                 ->orderBy('created_at', 'asc')->get();
-        } else if ($period == 'custom') {
+        } elseif ($period === 'custom') {
             $fromDate = $request->input('fromdate');
             $toDate = $request->input('todate');
             $monthName = date('d-m-Y', time());
@@ -249,7 +280,7 @@ class ReportController extends Controller
                     $row->purchase_cost,
                     $row->repairing_charge ?: 0,
                     $row->purchase_price,
-                    ($row->is_sold == 1) ? 'Yes' : 'No',
+                    ($row->is_sold === 1) ? 'Yes' : 'No',
                     $row->remark,
                 ], ';');
             }
@@ -282,19 +313,28 @@ class ReportController extends Controller
     /**
      * display Sales & profit Charts
      */
-    public function displayCharts()
+    public function displayCharts(Request $request)
     {
-        $startOfMonth = Carbon::now()->startOfMonth();
-        $endOfMonth = Carbon::now();  // today's date)
-        $allSales = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])
-            ->where('deleted', 0)
-            ->orderBy('created_at', 'desc')->get();
-        $totalSalesAmount = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])->where('deleted', 0)->sum('net_amount');
-        $totalProfitAmount = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])->where('deleted', 0)->sum('profit');
-        $timePeriod = Carbon::now()->format('F');
+        $selectedMonth = $request->input('month', Carbon::now()->format('Y-m'));
 
-        // json_encode($allSales);
-        return view('reports.saleschart', ['allSales' => json_encode($allSales)]);
+        try {
+            $startOfMonth = Carbon::createFromFormat('Y-m', $selectedMonth)->startOfMonth();
+            $endOfMonth   = Carbon::createFromFormat('Y-m', $selectedMonth)->endOfMonth();
+        } catch (\Exception $e) {
+            $startOfMonth = Carbon::now()->startOfMonth();
+            $endOfMonth   = Carbon::now()->endOfMonth();
+            $selectedMonth = Carbon::now()->format('Y-m');
+        }
+
+        $allSales = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])
+            ->with('items')
+            ->where('deleted', 0)
+            ->orderBy('invoice_date', 'asc')->get();
+
+        return view('reports.saleschart', [
+            'allSales'      => $allSales,
+            'selectedMonth' => $selectedMonth,
+        ]);
     }
 
     public function customers()
@@ -302,7 +342,7 @@ class ReportController extends Controller
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now();  // today's date)
         $uniqueCustomers = Invoice::where('deleted', 0)
-            ->select('customer_name', 'customer_no')
+            ->select('customer_name', 'customer_no', 'created_at')
             ->distinct()
             ->orderBy('created_at', 'desc')->get();
 
@@ -314,13 +354,11 @@ class ReportController extends Controller
 
     public function exportcustomers()
     {
-        // $startOfMonth = Carbon::now()->startOfMonth();
-        // $endOfMonth = Carbon::now();
         $uniqueCustomers = Invoice::where('deleted', 0)
             ->select('customer_name', 'customer_no')
             ->distinct()
             ->orderBy('created_at', 'desc')->get();
-        $fileName = 'vision-customers.csv';
+        $fileName = 'mafia-mobile-customers.csv';
         $headers = [
             'Content-type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=$fileName",

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -35,6 +37,7 @@ class GoogleContactController extends Controller
                 'sync_url' => route('sync.contact'),
             ]);
         }
+
         return response()->json(['error' => $result['error']], 500);
     }
 
@@ -48,6 +51,7 @@ class GoogleContactController extends Controller
         if (isset($result['redirect'])) {
             return redirect($result['redirect']);
         }
+
         return response()->json(['error' => $result['error']], 500);
     }
 }

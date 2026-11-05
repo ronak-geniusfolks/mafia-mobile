@@ -1,11 +1,20 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\Purchase;
+use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class InvoiceController extends Controller
 {
@@ -18,136 +27,318 @@ class InvoiceController extends Controller
 
     public function index()
     {
-        $allInvoices = Invoice::where('deleted', 0)->orderBy('invoice_date', 'desc')->get();
+        $allInvoices = Invoice::with('items')->where('deleted', 0)->orderBy('id', 'desc')->get();
 
         return view('invoice.index', ['allInvoices' => $allInvoices]);
     }
 
-    public function newInvoice()
+    public function newInvoice(Request $request)
     {
         $stocksModel = Purchase::where('deleted', 0)->orderBy('purchase_date', 'desc')->get();
 
-        $lastInvoice   = Invoice::orderBy('id', 'desc')->first();
-        $currentYear   = date('Y');
+        $lastInvoice = Invoice::orderBy('id', 'desc')->first();
+        $currentYear = date('Y');
         $nextInvoiceNo = 1; // Default to 1
         if ($lastInvoice) {
             // Extract the year from the last invoice number
-            preg_match('/VM(\d{4})/', (string) $lastInvoice->invoice_no, $matches);
+            preg_match('/MF(\d{4})/', (string) $lastInvoice->invoice_no, $matches);
             $lastYear = $matches[1] ?? null;
 
-            if ($lastYear == $currentYear) {
+            if ($lastYear === $currentYear) {
                 // If the year matches, increment the invoice number
-                $lastId        = intval(substr((string) $lastInvoice->invoice_no, -4)); // Get the last numeric part
+                $lastId = (int) (mb_substr((string) $lastInvoice->invoice_no, -4)); // Get the last numeric part
                 $nextInvoiceNo = $lastId + 1;
             }
         }
 
-        $formattedNumber = 'VM' . $currentYear . str_pad($nextInvoiceNo, 4, '0', STR_PAD_LEFT);
+        $formattedNumber = 'MF'.$currentYear.mb_str_pad((string) $nextInvoiceNo, 4, '0', STR_PAD_LEFT);
+
+        // Resuming an in-progress draft (e.g. the phone scanned the QR code on this
+        // Create screen): reuse the same token/draft instead of starting fresh, so
+        // the phone shows exactly what was typed on the computer.
+        $draft = null;
+        $incomingToken = $request->query('upload_token');
+        $cached = $incomingToken ? Cache::get('mm_upload_token_'.$incomingToken) : null;
+
+        if ($cached && ! empty($cached['pending']) && ($cached['type'] ?? null) === 'invoice') {
+            $uploadToken = $incomingToken;
+            $draft = $cached['draft'] ?? null;
+            Cache::put('mm_upload_token_'.$uploadToken, $cached, now()->addHours(24));
+        } else {
+            // Pending upload session: lets the user attach documents (PC + phone/QR)
+            // on this Create screen before the invoice is saved. Files are linked to
+            // the invoice on submit by AttachmentController::attachPendingToInvoice().
+            $uploadToken = Str::random(48);
+            Cache::put('mm_upload_token_'.$uploadToken, [
+                'type'    => 'invoice',
+                'pending' => true,
+            ], now()->addHours(24));
+        }
 
         return view('invoice.add', [
             'stocksModel' => $stocksModel,
-            'lastId'      => $formattedNumber,
+            'lastId' => $draft['invoice_no'] ?? $formattedNumber,
+            'uploadToken' => $uploadToken,
+            'draft' => $draft,
         ]);
+    }
+
+    /**
+     * Autosave the in-progress Create Invoice form so scanning the QR code on a
+     * phone (or reloading) can restore it. Called every few seconds while typing.
+     */
+    public function saveDraft(Request $request, string $token)
+    {
+        $cached = Cache::get('mm_upload_token_'.$token);
+
+        if (! $cached || empty($cached['pending']) || ($cached['type'] ?? null) !== 'invoice') {
+            return response()->json(['success' => false, 'message' => 'This session has expired.'], 403);
+        }
+
+        $cached['draft'] = $request->except(['_token']);
+        Cache::put('mm_upload_token_'.$token, $cached, now()->addHours(24));
+
+        return response()->json(['success' => true]);
     }
 
     public function createInvoice(Request $request)
     {
-        $request->validate([
-            'item_id'          => ['required', Rule::unique('invoices')->where(fn($q) => $q->where('deleted', 0))],
-            'customer_name'    => 'required|string|max:255',
-            'item_description' => 'required|string',
-            'invoice_date'     => 'required|date',
-            'invoice_no'       => 'required|string',
-            'total_amount'     => 'required|numeric|min:0',
-            'net_amount'       => 'required|numeric|min:0',
-            'payment_type'     => 'required|string',
-        ]);
-
-        $purchase = Purchase::findOrFail($request->item_id);
-
-        $profit = floatval($request->net_amount - $purchase->purchase_price);
-
-        $invoice = Invoice::create([
-            'item_id'              => $request->item_id,
-            'item_description'     => $request->item_description,
-            'customer_name'        => $request->customer_name,
-            'customer_no'          => $request->customer_no,
-            'invoice_date'         => $request->invoice_date,
-            'warranty_expiry_date' => $request->warranty_expiry_date ?? null,
-            'invoice_no'           => $request->invoice_no,
-            'total_amount'         => $request->total_amount,
-            'net_amount'           => $request->net_amount,
-            'cgst_rate'            => $request->cgst_rate ?? 0,
-            'sgst_rate'            => $request->sgst_rate ?? 0,
-            'igst_rate'            => $request->igst_rate ?? 0,
-            'cgst_amount'          => $request->cgst_amount ?? 0,
-            'sgst_amount'          => $request->sgst_amount ?? 0,
-            'igst_amount'          => $request->igst_amount ?? 0,
-            'declaration'          => $request->declaration ?? null,
-            'tax_amount'           => $request->tax_amount ?? 0,
-            'discount'             => $request->discount_amount ?? 0,
-            'discount_rate'        => $request->discount_rate ?? 0,
-            'quantity'             => $request->quantity ?? 1,
-            'payment_type'         => $request->payment_type,
-            'is_paid'              => 1,
-            'profit'               => $profit,
-            'invoice_by'           => Auth::id(),
-        ]);
-
-        // Mark purchase as sold
-        $purchase->update([
-            'is_sold'   => 1,
-            'sell_date' => $request->invoice_date,
-        ]);
-
-        if ($request->customer_no_sync == 'on') {
-            $request->merge(['invoice_id' => $invoice->id]);
-
-            $result = $this->googleContactService->syncContact($request);
-
-            if (!$result['success']) {
-                if (isset($result['redirect'])) {
-                    return redirect()->to($result['redirect']);
-                }
-                return response()->json(['error' => $result['error'] ?? 'Contact sync failed'], 500);
+        // Convert date format from dd/mm/yyyy to Y-m-d using Carbon
+        if ($request->invoice_date) {
+            try {
+                $convertedDate = Carbon::createFromFormat('d/m/Y', $request->invoice_date)->format('Y-m-d');
+                $request->merge(['invoice_date' => $convertedDate]);
+            } catch (Exception $e) {
+                // If conversion fails, keep original value for validation to handle
             }
         }
 
-        return redirect()->route('print-invoice', $invoice->id);
-    }
+        if ($request->warranty_expiry_date) {
+            try {
+                $convertedDate = Carbon::createFromFormat('d/m/Y', $request->warranty_expiry_date)->format('Y-m-d');
+                $request->merge(['warranty_expiry_date' => $convertedDate]);
+            } catch (Exception $e) {
+                // If conversion fails, keep original value for validation to handle
+            }
+        }
 
+        // Validate request
+        $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.item_id' => 'required|integer|exists:purchases,id',
+            'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.quantity' => 'required|integer|min:1',
+            'customer_name' => 'required|string|max:255',
+            'invoice_date' => 'required|date',
+            'invoice_no' => 'required|string',
+            'total_amount' => 'required|numeric|min:0',
+            'net_amount' => 'required|numeric|min:0',
+            'payment_type' => 'required|string',
+        ]);
+
+        // Already submitted (e.g. from the phone via the same QR-restored draft,
+        // while this tab was still open) — treat it as success rather than erroring
+        // on the invoice_no unique constraint.
+        $existing = Invoice::where('invoice_no', $request->invoice_no)->first();
+        if ($existing) {
+            return redirect()->route('print-invoice', $existing->id);
+        }
+
+        // Use database transaction
+        DB::beginTransaction();
+        try {
+            // Create invoice
+            $invoice = Invoice::create([
+                'customer_name' => $request->customer_name,
+                'customer_no' => $request->customer_no,
+                'customer_address' => $request->customer_address ?? null,
+                'invoice_date' => $request->invoice_date,
+                'invoice_no' => $request->invoice_no,
+                'total_amount' => $request->total_amount,
+                'net_amount' => $request->net_amount,
+                'cgst_rate' => $request->cgst_rate ?? 0,
+                'sgst_rate' => $request->sgst_rate ?? 0,
+                'igst_rate' => $request->igst_rate ?? 0,
+                'cgst_amount' => $request->cgst_amount ?? 0,
+                'sgst_amount' => $request->sgst_amount ?? 0,
+                'igst_amount' => $request->igst_amount ?? 0,
+                'tax_amount' => $request->tax_amount ?? 0,
+                'discount' => $request->discount_amount ?? 0,
+                'discount_rate' => $request->discount_rate ?? 0,
+                'declaration' => $request->declaration ?? null,
+                'payment_type' => $request->payment_type,
+                'is_paid' => 1,
+                'invoice_by' => Auth::id(),
+            ]);
+
+            // Create invoice items and mark purchases as sold
+            $totalProfit = 0;
+            foreach ($request->items as $item) {
+                $purchase = Purchase::findOrFail($item['item_id']);
+
+                // Check if item is already sold
+                if ($purchase->is_sold) {
+                    DB::rollBack();
+
+                    return back()->withErrors(['error' => 'Item '.$purchase->imei.' is already sold.'])->withInput();
+                }
+
+                $unitPrice = $item['unit_price'];
+                $totalAmount = $unitPrice * $item['quantity'];
+                $profit = ($unitPrice - $purchase->purchase_price) * $item['quantity'];
+
+                // Convert warranty date if provided
+                $warrantyDate = null;
+                if (! empty($item['warranty_expiry_date'])) {
+                    $warrantyDate = Carbon::createFromFormat('d/m/Y', $item['warranty_expiry_date'])->format('Y-m-d');
+                }
+
+                // Create invoice item
+                InvoiceItem::create([
+                    'invoice_id' => $invoice->id,
+                    'item_id' => $item['item_id'],
+                    'item_description' => $item['item_description'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $unitPrice,
+                    'total_amount' => $totalAmount,
+                    'warranty_expiry_date' => $warrantyDate,
+                    'profit' => $profit,
+                ]);
+
+                $totalProfit += $profit;
+
+                // Mark purchase as sold
+                $purchase->update([
+                    'is_sold' => 1,
+                    'sell_date' => $request->invoice_date,
+                ]);
+            }
+
+            DB::commit();
+
+            // Link any documents the user attached on the Create screen (PC + phone)
+            // to this invoice. Best-effort: a file issue must not break invoice creation.
+            try {
+                AttachmentController::attachPendingToInvoice($request->upload_token, $invoice);
+            } catch (Exception $e) {
+                Log::warning('Failed to link pending attachments to invoice '.$invoice->id.': '.$e->getMessage());
+            }
+
+            // Handle Google contact sync
+            if ($request->customer_no_sync === 'on') {
+                $request->merge(['invoice_id' => $invoice->id]);
+                $result = $this->googleContactService->syncContact($request);
+
+                if (! $result['success']) {
+                    if (isset($result['redirect'])) {
+                        return redirect()->to($result['redirect']);
+                    }
+
+                    return response()->json(['error' => $result['error'] ?? 'Contact sync failed'], 500);
+                }
+            }
+
+            return redirect()->route('print-invoice', $invoice->id);
+
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return back()->withErrors(['error' => 'An error occurred: '.$e->getMessage()])->withInput();
+        }
+    }
 
     public function invoiceDetail($id)
     {
-        $invoice = Invoice::findOrFail($id);
+        $invoice = Invoice::with(['items.purchase', 'user'])->findOrFail($id);
+        $amountInWords = $this->amoutInWords((float) ($invoice->net_amount));
 
-        return view('invoice.detail', ['invoice' => $invoice]);
+        return view('invoice.detail', ['invoice' => $invoice, 'amountInWords' => $amountInWords]);
     }
 
     public function printInvoice($id)
     {
-        $invoice       = Invoice::findOrFail($id);
-        $amountInWords = $this->amoutInWords(floatval($invoice->net_amount));
+        $invoice = Invoice::with(['items.purchase', 'user'])->findOrFail($id);
+        $amountInWords = $this->amoutInWords((float) ($invoice->net_amount));
 
         return view('invoice.print', ['invoice' => $invoice, 'amountInWords' => $amountInWords]);
     }
 
     public function fetchModelData($imei)
     {
-        $purchase = Purchase::where('imei', 'LIKE', "{$imei}%")
+        $purchase = Purchase::where('imei', 'LIKE', "%{$imei}%")
             ->where('is_sold', 0)
             ->first();
-        $count = $purchase ? 1 : 0;
+        if (! $purchase) {
+            return response()->json([
+                'error' => 'IMEI Not in stock',
+            ]);
+        }
 
         return response()->json([
             'purchase' => $purchase,
-            'count'    => $count,
         ]);
+    }
+
+    public function fetchCustomerByContact($contactNo)
+    {
+        // Find the most recent invoice for this contact number
+        $invoice = Invoice::where('customer_no', $contactNo)
+            ->where('deleted', 0)
+            ->orderBy('invoice_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if (! $invoice) {
+            return response()->json([
+                'error' => 'No customer found with this contact number',
+            ]);
+        }
+
+        return response()->json([
+            'customer' => [
+                'customer_name' => $invoice->customer_name,
+                'customer_no' => $invoice->customer_no,
+                'customer_address' => $invoice->customer_address,
+            ],
+        ]);
+    }
+
+    public function searchCustomers(Request $request)
+    {
+        // Normalize the search term to digits only (mobile number)
+        $term = preg_replace('/\D/', '', (string) $request->get('term', ''));
+
+        if (mb_strlen($term) < 3) {
+            // Require at least 3 digits before searching
+            return response()->json([]);
+        }
+
+        // Get unique customers whose numbers start with the term
+        $customers = Invoice::notDeleted()
+            ->where('customer_no', 'like', $term.'%')
+            ->select('customer_no', 'customer_name', 'customer_address')
+            ->groupBy('customer_no', 'customer_name', 'customer_address')
+            ->orderBy('customer_no')
+            ->limit(10)
+            ->get();
+
+        // Format for jQuery UI autocomplete
+        $results = $customers->map(static function ($customer) {
+            return [
+                'label' => $customer->customer_no.' - '.$customer->customer_name,
+                'value' => $customer->customer_no,
+                'customer_name' => $customer->customer_name,
+                'customer_no' => $customer->customer_no,
+                'customer_address' => $customer->customer_address,
+            ];
+        });
+
+        return response()->json($results);
     }
 
     public function editInvoice($id)
     {
-        $invoice     = Invoice::findOrFail($id);
+        $invoice = Invoice::with('items.purchase')->findOrFail($id);
         $stocksModel = Purchase::where('deleted', 0)->orderBy('purchase_date', 'desc')->get();
 
         return view('invoice.edit', ['invoice' => $invoice, 'stocksModel' => $stocksModel]);
@@ -155,69 +346,193 @@ class InvoiceController extends Controller
 
     public function updateInvoice(Request $request, $id)
     {
-        $invoice    = Invoice::findOrFail($id);
-        $updateData = $request->all();
+        $invoice = Invoice::with('items.purchase')->findOrFail($id);
 
-        // check if contact name or contact number is chagnges?
-        $isContactInformationChanges = false;
-        if ($invoice->customer_name != $request->customer_name || $invoice->customer_no != $request->customer_no) {
-            $isContactInformationChanges = true;
-        }
-
-        if (isset($updateData['customer_no_sync'])) {
-            unset($updateData['customer_no_sync']);
-        }
-
-        $updateData['profit']     = floatval($request->net_amount - Purchase::findOrFail($request->item_id)->purchase_price);
-        $updateData['invoice_by'] = Auth::user()->id;
-        $invoice->update($updateData);
-
-        $customer_no_sync = $request->customer_no_sync;
-        if ($customer_no_sync == 'on' && $isContactInformationChanges) {
-            $request->merge(['invoice_id' => $invoice->id]);
-            $result = $this->googleContactService->syncContact($request);
-            if ($result['success'] == false) {
-                if (isset($result['redirect'])) {
-                    // Redirect the user to the Google authentication page (or other redirect URL)
-                    return redirect()->to($result['redirect']);
-                }
-
-                // If no redirect URL is set, return an error message
-                return response()->json(['error' => $result['error']], 500);
+        // Convert date format from dd/mm/yyyy to Y-m-d using Carbon
+        if ($request->invoice_date) {
+            try {
+                $convertedDate = Carbon::createFromFormat('d/m/Y', $request->invoice_date)->format('Y-m-d');
+                $request->merge(['invoice_date' => $convertedDate]);
+            } catch (Exception $e) {
+                // If conversion fails, keep original value for validation to handle
             }
         }
 
-        return redirect()->route('allinvoices')->withStatus('Invoice Updated Successfully..');
+        if ($request->warranty_expiry_date) {
+            try {
+                $convertedDate = Carbon::createFromFormat('d/m/Y', $request->warranty_expiry_date)->format('Y-m-d');
+                $request->merge(['warranty_expiry_date' => $convertedDate]);
+            } catch (Exception $e) {
+                // If conversion fails, keep original value for validation to handle
+            }
+        }
+
+        // Validate dates after conversion
+        $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.item_id' => 'required|integer|exists:purchases,id',
+            'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.quantity' => 'required|integer|min:1',
+            'customer_name' => 'required|string|max:255',
+            'invoice_date' => 'required|date',
+            'invoice_no' => 'required|string',
+            'total_amount' => 'required|numeric|min:0',
+            'net_amount' => 'required|numeric|min:0',
+            'payment_type' => 'required|string',
+        ]);
+
+        // Use database transaction
+        DB::beginTransaction();
+        try {
+            // Mark all old purchases as unsold
+            foreach ($invoice->items as $item) {
+                if ($item->purchase) {
+                    $item->purchase->update([
+                        'is_sold' => 0,
+                        'sell_date' => null,
+                    ]);
+                }
+            }
+
+            // Delete old invoice items
+            $invoice->items()->delete();
+
+            // Update invoice details
+            $invoice->update([
+                'customer_name' => $request->customer_name,
+                'customer_no' => $request->customer_no,
+                'customer_address' => $request->customer_address ?? null,
+                'invoice_date' => $request->invoice_date,
+                'total_amount' => $request->total_amount,
+                'net_amount' => $request->net_amount,
+                'cgst_rate' => $request->cgst_rate ?? 0,
+                'sgst_rate' => $request->sgst_rate ?? 0,
+                'igst_rate' => $request->igst_rate ?? 0,
+                'cgst_amount' => $request->cgst_amount ?? 0,
+                'sgst_amount' => $request->sgst_amount ?? 0,
+                'igst_amount' => $request->igst_amount ?? 0,
+                'tax_amount' => $request->tax_amount ?? 0,
+                'discount' => $request->discount_amount ?? 0,
+                'discount_rate' => $request->discount_rate ?? 0,
+                'declaration' => $request->declaration ?? null,
+                'payment_type' => $request->payment_type,
+                'invoice_by' => Auth::id(),
+            ]);
+
+            // Create new invoice items and mark purchases as sold
+            $totalProfit = 0;
+            foreach ($request->items as $item) {
+                $purchase = Purchase::findOrFail($item['item_id']);
+
+                // Check if item is already sold
+                if ($purchase->is_sold) {
+                    DB::rollBack();
+
+                    return back()->withErrors(['error' => 'Item '.$purchase->imei.' is already sold.'])->withInput();
+                }
+
+                $unitPrice = $item['unit_price'];
+                $totalAmount = $unitPrice * $item['quantity'];
+                $profit = ($unitPrice - $purchase->purchase_price) * $item['quantity'];
+
+                // Convert warranty date if provided
+                $warrantyDate = null;
+                if (! empty($item['warranty_expiry_date'])) {
+                    $warrantyDate = Carbon::createFromFormat('d/m/Y', $item['warranty_expiry_date'])->format('Y-m-d');
+                }
+
+                // Create invoice item
+                InvoiceItem::create([
+                    'invoice_id' => $invoice->id,
+                    'item_id' => $item['item_id'],
+                    'item_description' => $item['item_description'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $unitPrice,
+                    'total_amount' => $totalAmount,
+                    'warranty_expiry_date' => $warrantyDate,
+                    'profit' => $profit,
+                ]);
+
+                $totalProfit += $profit;
+
+                // Mark purchase as sold
+                $purchase->update([
+                    'is_sold' => 1,
+                    'sell_date' => $request->invoice_date,
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->route('allinvoices')->withStatus('Invoice Updated Successfully..');
+
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return back()->withErrors(['error' => 'An error occurred: '.$e->getMessage()])->withInput();
+        }
+    }
+
+    public function deleteInvoice($id)
+    {
+        DB::beginTransaction();
+        try {
+            $invoice = Invoice::with('items.purchase')->findOrFail($id);
+
+            // Mark the purchases as unsold so they can be sold again
+            foreach ($invoice->items as $item) {
+                if ($item->purchase) {
+                    $item->purchase->update([
+                        'is_sold' => 0,
+                        'sell_date' => null,
+                    ]);
+                }
+            }
+
+            // Soft delete invoice items
+            $invoice->items()->update(['deleted' => 1]);
+
+            // Soft delete the invoice
+            $invoice->update(['deleted' => 1]);
+
+            DB::commit();
+
+            return redirect()->route('allinvoices')->withStatus('Invoice Deleted Successfully.');
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return back()->withErrors(['error' => 'An error occurred while deleting the invoice.']);
+        }
     }
 
     public function amoutInWords(float $amount): string
     {
         $amount_after_decimal = round($amount - ($num = floor($amount)), 2) * 100;
         // Check if there is any number after decimal
-        $amt_hundred  = null;
-        $count_length = strlen($num);
-        $x            = 0;
-        $string       = [];
+        $amt_hundred = null;
+        $count_length = mb_strlen((string) $num);
+        $x = 0;
+        $string = [];
         $change_words = [0 => '', 1 => 'One', 2 => 'Two', 3 => 'Three', 4 => 'Four', 5 => 'Five', 6 => 'Six', 7 => 'Seven', 8 => 'Eight', 9 => 'Nine', 10 => 'Ten', 11 => 'Eleven', 12 => 'Twelve', 13 => 'Thirteen', 14 => 'Fourteen', 15 => 'Fifteen', 16 => 'Sixteen', 17 => 'Seventeen', 18 => 'Eighteen', 19 => 'Nineteen', 20 => 'Twenty', 30 => 'Thirty', 40 => 'Forty', 50 => 'Fifty', 60 => 'Sixty', 70 => 'Seventy', 80 => 'Eighty', 90 => 'Ninety'];
-        $here_digits  = ['', 'Hundred', 'Thousand', 'Lakh', 'Crore'];
+        $here_digits = ['', 'Hundred', 'Thousand', 'Lakh', 'Crore'];
 
         while ($x < $count_length) {
-            $get_divider = ($x == 2) ? 10 : 100;
-            $amount      = floor($num % $get_divider);
-            $num         = floor($num / $get_divider);
-            $x += $get_divider == 10 ? 1 : 2;
+            $get_divider = ($x === 2) ? 10 : 100;
+            $amount = floor($num % $get_divider);
+            $num = floor($num / $get_divider);
+            $x += $get_divider === 10 ? 1 : 2;
             if ($amount !== 0.0) {
-                $add_plural  = (($counter = count($string)) && $amount > 9) ? 's' : null;
-                $amt_hundred = ($counter == 1 && $string[0]) ? ' and ' : null;
-                $string[]    = ($amount < 21) ? $change_words[$amount] . ' ' . $here_digits[$counter] . $add_plural . ' ' . $amt_hundred : $change_words[floor($amount / 10) * 10] . ' ' . $change_words[$amount % 10] . ' ' . $here_digits[$counter] . $add_plural . ' ' . $amt_hundred;
+                $add_plural = (($counter = count($string)) && $amount > 9) ? 's' : null;
+                $amt_hundred = ($counter === 1 && $string[0]) ? ' and ' : null;
+                $string[] = ($amount < 21) ? $change_words[$amount].' '.$here_digits[$counter].$add_plural.' '.$amt_hundred : $change_words[floor($amount / 10) * 10].' '.$change_words[$amount % 10].' '.$here_digits[$counter].$add_plural.' '.$amt_hundred;
             } else {
                 $string[] = null;
             }
         }
         $implode_to_Rupees = implode('', array_reverse($string));
-        $get_paise         = ($amount_after_decimal > 0) ? 'And ' . ($change_words[$amount_after_decimal / 10] . '
-        ' . $change_words[$amount_after_decimal % 10]) . ' Paise' : '';
+        $get_paise = ($amount_after_decimal > 0) ? 'And '.($change_words[$amount_after_decimal / 10].'
+        '.$change_words[$amount_after_decimal % 10]).' Paise' : '';
 
-        return ($implode_to_Rupees !== '' && $implode_to_Rupees !== '0' ? $implode_to_Rupees . 'Only ' : '') . $get_paise;
+        return ($implode_to_Rupees !== '' && $implode_to_Rupees !== '0' ? $implode_to_Rupees.'Only ' : '').$get_paise;
     }
 }

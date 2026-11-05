@@ -4,14 +4,14 @@
 <head>
 
     <meta charset="utf-8" />
-    <title>@yield('title') - Vision Mobile</title>
+    <title>@yield('title') - Mafia Mobile</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta content="● Buy-Sell-Exchange ● Vision Mobile" name="description" />
-    <meta content="Vision Mobile" name="author" />
+    <meta content="● Buy-Sell-Exchange ● Mafia Mobile" name="description" />
+    <meta content="Mafia Mobile" name="author" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- App favicon -->
-    <link rel="shortcut icon" href="{{ asset('assets/images/new_logo/favicon.ico')}}">
+    <link rel="shortcut icon" href="{{ asset('assets/images/new_logo/main_logo.png')}}">
 
     <!-- Plugins css -->
     <link href="{{ asset('assets/libs/selectize/css/selectize.bootstrap3.css') }}" rel="stylesheet" type="text/css" />
@@ -21,7 +21,9 @@
     <link href="{{ asset('assets/css/bootstrap.min.css') }}" rel="stylesheet" type="text/css"id="bs-default-stylesheet" />
     <link href="{{ asset('assets/css/app.min.css') }}" rel="stylesheet" type="text/css" id="app-default-stylesheet" />
 
-    <!-- <link href="{{ asset('assets/css/bootstrap-dark.min.css') }}" rel="stylesheet" type="text/css" id="bs-dark-stylesheet" disabled /> -->
+    <!-- Theme overrides -->
+    <link href="{{ asset('assets/css/theme-overrides.css') }}" rel="stylesheet" type="text/css" />
+
     <link href="{{ asset('assets/css/app-dark.min.css') }}" rel="stylesheet" type="text/css" id="app-dark-stylesheet"
         disabled />
 
@@ -29,6 +31,7 @@
     <link href="{{ asset('assets/css/icons.min.css') }}" rel="stylesheet" type="text/css" />
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     @yield('css')
+    @stack('styles')
 </head>
 
 <body
@@ -119,6 +122,58 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     @yield('scripts')
+    @stack('scripts')
+
+    {{-- ── Global helpers: vmConfirm + vmToast (SweetAlert2) ───────────────── --}}
+    <style>
+    .vm-swal-popup  { border-radius: 12px !important; font-family: inherit !important; }
+    .vm-swal-title  { font-size: 1.05rem !important; font-weight: 700 !important; }
+    .vm-swal-toast  { border-radius: 8px !important; font-size: 0.9rem !important; }
+    </style>
+    <script>
+    /**
+     * vmConfirm({ title, text, icon, confirmText, cancelText, confirmColor, cancelColor })
+     * Returns a Promise<boolean>
+     */
+    window.vmConfirm = function(opts) {
+        opts = opts || {};
+        return Swal.fire({
+            title:             opts.title       || 'Are you sure?',
+            text:              opts.text        || '',
+            icon:              opts.icon        || 'warning',
+            showCancelButton:  true,
+            confirmButtonText: opts.confirmText || 'Yes, Proceed',
+            cancelButtonText:  opts.cancelText  || 'Cancel',
+            confirmButtonColor: opts.confirmColor || '#dc3545',
+            cancelButtonColor:  opts.cancelColor  || '#6c757d',
+            focusCancel:       true,
+            reverseButtons:    true,
+            customClass: {
+                popup:         'vm-swal-popup',
+                title:         'vm-swal-title',
+                confirmButton: 'vm-swal-confirm',
+                cancelButton:  'vm-swal-cancel',
+            },
+        }).then(function(result) { return result.isConfirmed; });
+    };
+
+    /**
+     * vmToast(message, type)
+     * type: 'success' | 'error' | 'warning' | 'info'
+     */
+    window.vmToast = function(message, type) {
+        Swal.fire({
+            toast:              true,
+            position:           'top-end',
+            icon:               type || 'success',
+            title:              message,
+            showConfirmButton:  false,
+            timer:              3000,
+            timerProgressBar:   true,
+            customClass: { popup: 'vm-swal-toast' },
+        });
+    };
+    </script>
 </footer>
 
 </html>

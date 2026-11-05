@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\User;
@@ -11,7 +13,7 @@ use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
 {
-    // View Loggedin user Profile
+    // View Logged in user Profile
     public function profile()
     {
         $admin = Auth::user();
@@ -25,20 +27,20 @@ class AdminController extends Controller
             'name' => 'required',
             'username' => 'required',
             'email' => 'required|email',
-            'profile_image' => 'nullable',
+            'avatar' => 'nullable|image|max:2048', // max 2MB
         ]);
 
         $admin = User::find(Auth::user()->id);
-        // dd($request->all());
+
         $admin->name = $request->name;
         $admin->user_name = $request->username;
         $admin->email = $request->email;
-        if ($request->file('profile_image')) {
-            $file = $request->file('profile_image');
+        if ($request->file('avatar')) {
+            $file = $request->file('avatar');
 
             $filename = $admin->id.'-'.time().'-'.$file->getClientOriginalName();
             $file->move(public_path('admin/users/'), $filename);
-            $admin->profile_image = $filename;
+            $admin->avatar = $filename;
         }
         $admin->save();
 
@@ -62,10 +64,10 @@ class AdminController extends Controller
         if (! Auth::attempt(['id' => $user->id, 'password' => $request->currentpassword])) {
             return redirect()->back()->withError(_('Current password is wrong!'));
         }
-        if ($request->currentpassword == $request->password) {
+        if ($request->currentpassword === $request->password) {
             return redirect()->back()->withError(_('New password should not be same as current password!'));
         }
-        if ($request->password != $request->password_confirmation) {
+        if ($request->password !== $request->password_confirmation) {
             return redirect()->back()->withError(_('Password and confirm password should be same!'));
         }
 

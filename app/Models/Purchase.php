@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,5 +19,32 @@ class Purchase extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The invoice item that links this stock to an invoice.
+     * invoice_items.item_id = purchases.id
+     */
+    public function invoiceItem()
+    {
+        return $this->hasOne(InvoiceItem::class, 'item_id', 'id');
+    }
+
+    /** Attachments (documents) linked to this stock item */
+    public function attachments()
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
+    }
+
+    public function scopeNotSold($q)
+    {
+        return $q->where('is_sold', 0);
+    }
+
+    protected static function booted()
+    {
+        static::addGlobalScope('not_deleted', function (Builder $builder) {
+            $builder->where('deleted', 0);
+        });
     }
 }

@@ -4,15 +4,15 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title>Buy, Sell & Exchange Mobile Phone in Ahmedabad - Vision mobile</title>
+        <title>Buy, Sell & Exchange Mobile Phone in Ahmedabad - Mafia mobile</title>
         <meta name="description" content="Most trusted name for Buy, Sell and Exchange phones in Ahmedabad, Buy & exchange your used phones" />
-        <meta property="og:title" content="Buy, Sell & Exchange Mobile Phone in Ahmedabad - Vision mobile" />
+        <meta property="og:title" content="Buy, Sell & Exchange Mobile Phone in Ahmedabad - Mafia mobile" />
         <meta property="og:description" content="Most trusted name for Buy, Sell and Exchange phones in Ahmedabad, Buy & exchange your used phones" />
-        <meta property="og:image" content="https://visionmobile.in/public/assets/images/vision_mobile.png" />
+        <meta property="og:image" content="https://mafiamobile.in/public/assets/images/mafia_mobile.png" />
         <meta name="keywords" content="Sell old mobile phones, sell iphone, exchange used phones, Sell Mobile Phone, Buy Used Phones, iPhone, Samsung" />
         <meta name="robots" content="index, follow, notranslate" />
 
-        <link rel="canonical" href="https://visionmobile.in/home" />
+        <link rel="canonical" href="https://mafiamobile.in/home" />
         <!-- Fonts -->
         <link href="https://fonts.bunny.net/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
         <!-- Styles -->
@@ -30,17 +30,17 @@
         <div class="relative flex items-top justify-center min-h-screen bg-gray-100 dark:bg-gray-900 sm:items-center py-4 sm:pt-0">
             <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
                 <div class="flex justify-center pt-8 sm:justify-start sm:pt-0">
-                    <img alt="vision mobile Ahmedabad" src="https://visionmobile.in/public/assets/images/vision_mobile.png" width="150">
-                    Follow us on : &nbsp;<a href="https://www.instagram.com/vision_mobile_bodakdev_/" target="_blank"><img src="https://visionmobile.in/public/assets/images/ig.webp" height="40" width="40"></a> &nbsp;
-                    <img src="https://visionmobile.in/public/assets/images/fb.webp" height="40" width="40">
+                    <img alt="mafia mobile Ahmedabad" src="https://mafiamobile.in/public/assets/images/mafia_mobile.png" width="150">
+                    Follow us on : &nbsp;<a href="https://www.instagram.com/mafia_mobile_bodakdev_/" target="_blank"><img src="https://mafiamobile.in/public/assets/images/ig.webp" height="40" width="40"></a> &nbsp;
+                    <img src="https://mafiamobile.in/public/assets/images/fb.webp" height="40" width="40">
                 </div>
                 <div class="shadow">
                     <div class="grid grid-cols-1 md:grid-cols-2">
                         <div class="p-6">
-                            <a href="https://www.google.com/search?q=vision+mobile+bodakdev&rlz=1C1VDKB_enIN1088IN1088&oq=vision+mo&gs_lcrp=EgZjaHJvbWUqDggAEEUYJxg7GIAEGIoFMg4IABBFGCcYOxiABBiKBTIOCAEQRRgnGDsYgAQYigUyBggCEEUYOTIKCAMQLhixAxiABDIHCAQQABiABDIGCAUQRRg8MgYIBhBFGDwyBggHEEUYQdIBCDEzMjZqMWo3qAIAsAIA&sourceid=chrome&ie=UTF-8"><img alt="vision mobile" src="https://visionmobile.in/public/assets/images/vm1.png" width="250"></a>
+                            <a href="https://www.google.com/search?q=vision+mobile+bodakdev&rlz=1C1VDKB_enIN1088IN1088&oq=vision+mo&gs_lcrp=EgZjaHJvbWUqDggAEEUYJxg7GIAEGIoFMg4IABBFGCcYOxiABBiKBTIOCAEQRRgnGDsYgAQYigUyBggCEEUYOTIKCAMQLhixAxiABDIHCAQQABiABDIGCAUQRRg8MgYIBhBFGDwyBggHEEUYQdIBCDEzMjZqMWo3qAIAsAIA&sourceid=chrome&ie=UTF-8"><img alt="mafia mobile" src="https://mafiamobile.in/public/assets/images/vm1.png" width="250"></a>
                          </div>
                         <div class="p-6">
-                            <a href="https://www.google.com/search?q=vision+mobile+bodakdev&rlz=1C1VDKB_enIN1088IN1088&oq=vision+mo&gs_lcrp=EgZjaHJvbWUqDggAEEUYJxg7GIAEGIoFMg4IABBFGCcYOxiABBiKBTIOCAEQRRgnGDsYgAQYigUyBggCEEUYOTIKCAMQLhixAxiABDIHCAQQABiABDIGCAUQRRg8MgYIBhBFGDwyBggHEEUYQdIBCDEzMjZqMWo3qAIAsAIA&sourceid=chrome&ie=UTF-8"><img alt="vision mobile" src="https://visionmobile.in/public/assets/images/vm2.png" width="250"></a>
+                            <a href="https://www.google.com/search?q=vision+mobile+bodakdev&rlz=1C1VDKB_enIN1088IN1088&oq=vision+mo&gs_lcrp=EgZjaHJvbWUqDggAEEUYJxg7GIAEGIoFMg4IABBFGCcYOxiABBiKBTIOCAEQRRgnGDsYgAQYigUyBggCEEUYOTIKCAMQLhixAxiABDIHCAQQABiABDIGCAUQRRg8MgYIBhBFGDwyBggHEEUYQdIBCDEzMjZqMWo3qAIAsAIA&sourceid=chrome&ie=UTF-8"><img alt="mafia mobile" src="https://mafiamobile.in/public/assets/images/vm2.png" width="250"></a>
                         </div>                    
                     </div>
                 </div>

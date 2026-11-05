@@ -1,23 +1,36 @@
 <?php
 
-use Carbon\Carbon;
-use Illuminate\Http\Request;
-use App\Models\{Invoice, Purchase};
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\PasswordController;
-use App\Http\Controllers\Auth\NewPasswordController;
-use App\Http\Controllers\Auth\VerifyEmailController;
-use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\ConfirmablePasswordController;
+declare(strict_types=1);
+
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
-use App\Http\Controllers\{AdminController, ExpenseController, GoogleContactController, InvoiceController, ProfileController, PurchaseController, ReportController, RoleController, SaleController, TransactionController, UserController};
+use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\PasswordController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\BillController;
+use App\Http\Controllers\DealerController;
+use App\Http\Controllers\DealerPaymentController;
+use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\GoogleContactController;
+use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SaleController;
+use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Route;
 
 // Auth Routes
-Route::get('/', fn() => view('auth.login'));
-Route::get('/home', fn() => view('welcome'));
+Route::get('/', fn () => view('auth.login'));
+Route::get('/home', fn () => view('welcome'));
 
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])->name('register');
@@ -42,45 +55,11 @@ Route::middleware('auth')->group(function () {
 });
 
 // Dashboard
-Route::middleware(['auth', 'permission:dashboard.view'])->get('/dashboard', function (Request $request) {
-    $today        = Carbon::today();
-    $yesterday    = Carbon::yesterday();
-    $startOfMonth = Carbon::now()->startOfMonth();
-    $endOfMonth   = Carbon::now();
-    $sevenDaysAgo = Carbon::now()->subDays(7);
+use App\Http\Controllers\DashboardController;
 
-    $stocksInHand      = Purchase::where('is_sold', 0)->count();
-    $totalSales        = Invoice::whereDate('invoice_date', $today)->sum('net_amount');
-    $currentMonthSales = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])->where('deleted', 0)->sum('net_amount');
-
-    $filter   = $request->input('filtertime');
-    $fromdate = Carbon::parse($request->input('fromdate'))->startOfDay();
-    $todate   = Carbon::parse($request->input('todate'))->startOfDay();
-
-    $invoices = match ($filter) {
-        'yesterday' => Invoice::whereDate('invoice_date', $yesterday),
-        'lastweek' => Invoice::whereBetween('invoice_date', [$sevenDaysAgo, $today]),
-        'month'    => Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth]),
-        'custom'   => Invoice::whereBetween('invoice_date', [$fromdate, $todate]),
-        default    => Invoice::whereDate('invoice_date', $today),
-    };
-
-    $invoices                    = $invoices->where('deleted', 0)->orderBy('created_at', 'desc')->paginate(10);
-    $numberOfProductsSoldInMonth = Invoice::whereBetween('invoice_date', [$startOfMonth, $endOfMonth])->where('deleted', 0)->count();
-
-    return view('dashboard', [
-        'stocksInHand'                => $stocksInHand,
-        'totalSales'                  => number_format($totalSales, 0, '.', ','),
-        'currentMonthSales'           => number_format($currentMonthSales, 0, '.', ','),
-        'currentMonth'                => Carbon::now()->format('F'),
-        'numberOfProductsSoldInMonth' => $numberOfProductsSoldInMonth,
-        'todaysSales'                 => $invoices,
-        'filtertime'                  => $filter,
-        'fromdate'                    => $fromdate->format('Y-m-d'),
-        'todate'                      => $todate->format('Y-m-d'),
-        'totalRecords'                => $invoices->total(),
-    ]);
-})->name('dashboard');
+Route::middleware(['auth', 'permission:dashboard.view'])
+    ->get('/dashboard', [DashboardController::class, 'index'])
+    ->name('dashboard');
 
 // Profile Routes
 Route::middleware(['auth'])->group(function () {
@@ -97,10 +76,12 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/admin/purchases', [PurchaseController::class, 'index'])->middleware('permission:purchases.view')->name('allpurchases');
     Route::get('/admin/purchase/add', [PurchaseController::class, 'newPurchase'])->middleware('permission:purchases.create')->name('purchase.create');
+    Route::get('/admin/purchase/add-multiple', [PurchaseController::class, 'newMultiplePurchase'])->middleware('permission:purchases.create')->name('purchase.create.multiple');
     Route::post('/admin/purchase/add', [PurchaseController::class, 'savePurchase'])->middleware('permission:purchases.create')->name('purchase.store');
     Route::get('/admin/purchase/edit/{id}', [PurchaseController::class, 'editPurchase'])->middleware('permission:purchases.edit')->name('purchase.edit');
     Route::post('/admin/purchase/update/{id}', [PurchaseController::class, 'updatePurchase'])->middleware('permission:purchases.edit')->name('purchase.update');
     Route::delete('/admin/purchase/delete/{id}', [PurchaseController::class, 'deleteStock'])->middleware('permission:purchases.delete')->name('delete-stock');
+    Route::post('/admin/purchases/bulk-delete', [PurchaseController::class, 'bulkDelete'])->middleware('permission:purchases.delete')->name('purchases.bulk-delete');
     Route::get('/admin/purchase-detail/{id}', [PurchaseController::class, 'purchaseDetail'])->middleware('permission:purchases.view')->name('purchase-detail');
     Route::get('/admin/purchase/import', [PurchaseController::class, 'importStocks'])->middleware('permission:purchases.import')->name('purchase.importform');
     Route::post('/admin/purchase/importdata', [PurchaseController::class, 'importStocksData'])->middleware('permission:purchases.import')->name('purchase.import');
@@ -117,6 +98,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('admin/sale/delete/{id}', [SaleController::class, 'deleteSale'])->middleware('permission:sales.delete')->name('delete-sale');
     Route::get('/admin/fetchstockdata/{id}', [SaleController::class, 'fetchModelData'])->middleware('permission:sales.fetch.stock')->name('fetchmodeldata');
     Route::get('/admin/fetchstockonimei/{imei}', [InvoiceController::class, 'fetchModelData'])->middleware('permission:sales.fetch.stock')->name('fetchmodeldata');
+    Route::get('/admin/fetchcustomer/{contactNo}', [InvoiceController::class, 'fetchCustomerByContact'])->middleware('permission:invoices.create')->name('fetchcustomer');
+    Route::get('/admin/searchcustomers', [InvoiceController::class, 'searchCustomers'])->middleware('permission:invoices.create')->name('searchcustomers');
 });
 
 // Invoices
@@ -128,6 +111,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/invoice/print/{id}', [InvoiceController::class, 'printInvoice'])->middleware('permission:invoices.print')->name('print-invoice');
     Route::get('/admin/invoice/edit/{id}', [InvoiceController::class, 'editInvoice'])->middleware('permission:invoices.edit')->name('invoice-edit');
     Route::post('/admin/invoice/update/{id}', [InvoiceController::class, 'updateInvoice'])->middleware('permission:invoices.edit')->name('invoice-update');
+    Route::post('/admin/invoice/delete/{id}', [InvoiceController::class, 'deleteInvoice'])->middleware('permission:invoices.delete')->name('invoice-delete');
+    Route::post('/admin/invoice/draft/{token}', [InvoiceController::class, 'saveDraft'])->middleware('permission:invoices.create')->name('invoice.save-draft');
 });
 
 // Reports
@@ -172,4 +157,61 @@ Route::middleware(['auth'])->group(function () {
 
     Route::resource('users', UserController::class)->except(['show'])->middleware('permission:users.view');
     Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.create')->name('users.store');
+});
+
+// Dealers
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dealers', [DealerController::class, 'index'])->name('dealers.index');
+    Route::post('/dealers', [DealerController::class, 'store'])->name('dealers.store');
+    Route::get('/dealers/{id}/edit', [DealerController::class, 'edit'])->name('dealers.edit');
+    Route::put('/dealers/{id}', [DealerController::class, 'update'])->name('dealers.update');
+    Route::delete('/dealers/{id}', [DealerController::class, 'destroy'])->name('dealers.destroy');
+    Route::get('/dealers/{id}/report', [DealerController::class, 'report'])->name('dealers.report');
+});
+
+// Bills
+Route::middleware(['auth'])->group(function () {
+    Route::get('/admin/bills', [BillController::class, 'index'])->middleware('permission:bills.view')->name('allbills');
+    Route::get('/admin/bill/add', [BillController::class, 'newBill'])->middleware('permission:bills.create')->name('newbill');
+    Route::post('/admin/bill/create-bill', [BillController::class, 'createBill'])->middleware('permission:bills.create')->name('create-bill');
+    Route::get('/admin/bill/{id}', [BillController::class, 'billDetail'])->middleware('permission:bills.detail')->name('bill-detail');
+    Route::get('/admin/bill/print/{id}', [BillController::class, 'printBill'])->middleware('permission:bills.print')->name('print-bill');
+    Route::get('/admin/bill/edit/{id}', [BillController::class, 'editBill'])->middleware('permission:bills.edit')->name('bill-edit');
+    Route::post('/admin/bill/update/{id}', [BillController::class, 'updateBill'])->middleware('permission:bills.edit')->name('bill-update');
+    Route::post('/admin/bill/delete/{id}', [BillController::class, 'deleteBill'])->middleware('permission:bills.delete')->name('bill-delete');
+    Route::get('/admin/bill/fetch-model/{imei}', [BillController::class, 'fetchModelData'])->middleware('permission:bills.create')->name('fetch-bill-model');
+    Route::get('/admin/bill/fetch-dealer/{id}', [BillController::class, 'fetchDealerData'])->middleware('permission:bills.create')->name('fetch-bill-dealer');
+});
+
+// Dealer Payments
+Route::middleware(['auth'])->prefix('dealer-payments')->name('dealer-payments.')->group(function () {
+    Route::get('/', [DealerPaymentController::class, 'index'])->middleware('permission:dealer-payments.view')->name('index');
+    Route::get('/data', [DealerPaymentController::class, 'getDealersData'])->middleware('permission:dealer-payments.view')->name('data');
+    Route::get('/{dealerId}/bills', [DealerPaymentController::class, 'getDealerBills'])->middleware('permission:dealer-payments.view')->name('bills');
+    Route::post('/store', [DealerPaymentController::class, 'storePayment'])->middleware('permission:dealer-payments.create')->name('store');
+});
+
+// ─── Attachments ─────────────────────────────────────────────────────────────
+// Authenticated routes (laptop upload / delete / token generation)
+Route::middleware(['auth'])->prefix('attachments')->name('attachments.')->group(function () {
+    Route::post('/store', [AttachmentController::class, 'store'])->name('store');
+    Route::delete('/{id}', [AttachmentController::class, 'destroy'])->name('destroy');
+    Route::get('/token/{type}/{id}', [AttachmentController::class, 'generateToken'])->name('token');
+
+    // Pending uploads (Create screen polls this so phone/QR uploads appear live)
+    Route::get('/pending/{token}', [AttachmentController::class, 'listPending'])->name('pending');
+
+    // Documents Manager (view + export)
+    Route::get('/documents', [AttachmentController::class, 'docIndex'])
+        ->middleware('permission:attachments.view')
+        ->name('index');
+    Route::get('/documents/export', [AttachmentController::class, 'export'])
+        ->middleware('permission:attachments.export')
+        ->name('export');
+});
+
+// Mobile QR code entry point — requires login (redirects to the real invoice/
+// stock screen the QR was generated from once signed in).
+Route::middleware(['auth'])->group(function () {
+    Route::get('/mobile-upload/{token}', [AttachmentController::class, 'mobileUploadPage'])->name('attachments.mobile-upload');
 });

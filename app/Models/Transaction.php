@@ -1,10 +1,12 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Carbon\Carbon;
-use App\Models\DayOpeningBalance;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Transaction extends Model
 {
@@ -20,11 +22,6 @@ class Transaction extends Model
         'created_by',
     ];
 
-    protected static function boot()
-    {
-        parent::boot();
-    }
-
     public function paymentMethod()
     {
         return $this->belongsTo(PaymentMethod::class, 'payment_method');
@@ -33,8 +30,8 @@ class Transaction extends Model
     /**
      * Retrieve transactions based on provided filters.
      *
-     * @param array $columns Fields to retrieve
-     * @param array $filters Filters to apply to the query
+     * @param  array  $columns  Fields to retrieve
+     * @param  array  $filters  Filters to apply to the query
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getTransactions(array $columns = [], array $filters = [])
@@ -76,13 +73,13 @@ class Transaction extends Model
      * If only date_from is set, uses that date.
      * If only date_to is set, uses that date.
      *
-     * @param array $filters ['date_from' => 'YYYY-MM-DD', 'date_to' => 'YYYY-MM-DD']
+     * @param  array  $filters  ['date_from' => 'YYYY-MM-DD', 'date_to' => 'YYYY-MM-DD']
      * @return array Opening balance
-     * [
-     *     'balance'      => int,
-     *     'cash_balance' => int,
-     *     'bank_balance' => int,
-     * ]
+     *               [
+     *               'balance'      => int,
+     *               'cash_balance' => int,
+     *               'bank_balance' => int,
+     *               ]
      */
     public function getOpeningBalance(array $filters = [])
     {
@@ -95,7 +92,7 @@ class Transaction extends Model
         if ($openingData) {
             // Return the opening balance for the given date
             return [
-                'balance'      => $openingData->balance ?? 0,
+                'balance' => $openingData->balance ?? 0,
                 'cash_balance' => $openingData->cash_balance ?? 0,
                 'bank_balance' => $openingData->bank_balance ?? 0,
             ];
@@ -108,9 +105,14 @@ class Transaction extends Model
 
         // Return the last known opening balance before the given date
         return [
-            'balance'      => $lastData->balance ?? 0,
+            'balance' => $lastData->balance ?? 0,
             'cash_balance' => $lastData->cash_balance ?? 0,
             'bank_balance' => $lastData->bank_balance ?? 0,
         ];
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
     }
 }

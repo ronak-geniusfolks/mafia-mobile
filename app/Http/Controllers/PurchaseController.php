@@ -1,17 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\Purchase;
 use Carbon\Carbon;
+use DateTimeImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Response;
-use Maatwebsite\Excel\Facades\Excel;
 
 class PurchaseController extends Controller
 {
-    //
     public function index(Request $request)
     {
         $search = $request->input('search');
@@ -33,7 +34,6 @@ class PurchaseController extends Controller
             }
 
             $fileName .= '-.csv';
-            // $fileName = $year.'-'.$storage.'-'.$color.'-stock.csv';
             $headers = [
                 'Content-type' => 'text/csv',
                 'Content-Disposition' => "attachment; filename=$fileName",
@@ -50,8 +50,8 @@ class PurchaseController extends Controller
                             ->orWhere('purchase_from', 'like', "%{$search}%");
                     });
                 })
-                ->when(($isSold != ''), function ($query) use ($isSold): void {
-                    if ($isSold == 2) {
+                ->when(($isSold !== ''), function ($query) use ($isSold): void {
+                    if ($isSold === 2) {
                         $query->where('is_sold', 0);
                     } else {
                         $query->where('is_sold', 1);
@@ -93,7 +93,7 @@ class PurchaseController extends Controller
                         $row->purchase_cost,
                         $row->repairing_charge ?: 0,
                         $row->purchase_price,
-                        ($row->is_sold == 1) ? 'Yes' : 'No',
+                        ($row->is_sold === 1) ? 'Yes' : 'No',
                         $row->remark,
                     ], ';');
                     $totalCost += $row->purchase_cost;
@@ -117,7 +117,7 @@ class PurchaseController extends Controller
                         ->orWhere('purchase_from', 'like', "%{$search}%");
                 });
             })
-            ->when(($isSold != ''), function ($query) use ($isSold): void {
+            ->when((!empty($isSold)), function ($query) use ($isSold): void {
                 if ($isSold == 2) {
                     $query->where('is_sold', 0);
                 } else {
@@ -135,6 +135,7 @@ class PurchaseController extends Controller
             })
             ->where('deleted', 0)
             ->orderBy('id', $sortDirection)
+            ->with('invoiceItem.invoice')
             ->paginate(20);
         $colors = Purchase::select('color')
             ->distinct()
@@ -147,8 +148,8 @@ class PurchaseController extends Controller
                         ->orWhere('purchase_from', 'like', "%{$search}%");
                 });
             })
-            ->when(($isSold != ''), function ($query) use ($isSold): void {
-                if ($isSold == 2) {
+            ->when(($isSold !== ''), function ($query) use ($isSold): void {
+                if ($isSold === 2) {
                     $query->where('is_sold', 0);
                 } else {
                     $query->where('is_sold', 1);
@@ -163,6 +164,7 @@ class PurchaseController extends Controller
             ->where('deleted', 0)
             ->orderBy('color', 'asc') // Optional: order by color alphabetically
             ->get();
+
         return view('purchase.purchases', [
             'allPurchases' => $allPurchases,
             'issold' => $isSold,
@@ -178,7 +180,15 @@ class PurchaseController extends Controller
     // New purchase form
     public function newPurchase()
     {
-        return view('purchase.newpurchase');
+        $purchase = new Purchase();
+
+        return view('purchase.newpurchase', ['purchase' => $purchase]);
+    }
+
+    // New multiple purchase form
+    public function newMultiplePurchase()
+    {
+        return view('purchase.newpurchase-multiple');
     }
 
     public function purchaseDetail($id)
@@ -190,77 +200,113 @@ class PurchaseController extends Controller
 
     public function savePurchase(Request $request)
     {
-        // dd($request->all());
+        // Check if it's multiple stock entry
+        if ($request->entry_type === 'multiple') {
+            return $this->saveMultiplePurchases($request);
+        }
+
         $request->validate([
             'model' => 'required',
             'imei' => 'required',
-            'purchase_date' => 'required',
             'color' => 'required',
             'storage' => 'required',
-            'purchase_from' => 'required',
-            // 'contactno'=>'required|max:12|min:10',
             'purchase_cost' => 'required',
-        ], [
-            // 'contactno.required' => 'Please Correct Phone Number',
         ]);
 
-        $purchase = new Purchase;
+        // If request has ID → update, else create new
+        $purchase = $request->id
+            ? Purchase::findOrFail($request->id)
+            : new Purchase;
+
+        // Assign common fields
         $purchase->device_type = $request->device_type;
         $purchase->model = $request->model;
-        // $purchase->brand = $request->brand;
         $purchase->imei = $request->imei;
-        $purchase->purchase_date = $request->purchase_date;
+        $purchase->purchase_date = $request->purchase_date ?? Carbon::now()->format('Y-m-d');
         $purchase->color = $request->color;
         $purchase->storage = $request->storage;
         $purchase->purchase_from = $request->purchase_from;
         $purchase->contactno = $request->contactno;
         $purchase->warrentydate = $request->warrentydate;
         $purchase->purchase_cost = $request->purchase_cost;
-        $purchase->repairing_charge = $request->repairing_charge;
-
-        $repairingCharge = $purchase_price = $purchase->purchase_price = 0;
-        if ($purchase->repairing_charge > 0) {
-            $repairingCharge = $purchase->repairing_charge;
-        }
-        if ($purchase->purchase_cost > 0) {
-            $purchaseCost = $purchase->purchase_cost;
-        }
-        $purchase->purchase_price = floatval($purchaseCost + $repairingCharge);
+        $purchase->repairing_charge = $request->repairing_charge ?? 0;
         $purchase->remark = $request->remark;
-        $purchase->user_id = Auth::user()->id;
+        $purchase->user_id = Auth::id();
 
-        if ($request->file('document') != null && count($request->file('document')) > 0) {
+        // Calculate total purchase price
+        $purchaseCost = $purchase->purchase_cost > 0 ? $purchase->purchase_cost : 0;
+        $repairingCharge = $purchase->repairing_charge > 0 ? $purchase->repairing_charge : 0;
+        $purchase->purchase_price = (float) ($purchaseCost + $repairingCharge);
+
+        // Handle documents
+        if ($request->hasFile('document') && count($request->file('document')) > 0) {
+            $documents = [];
             foreach ($request->file('document') as $file) {
-                // $file = $request->file('document');
-                @unlink(public_path('documents/purchases/'.$file->getClientOriginalName()));
-                $filename = date('YmdHi').$file->getClientOriginalName();
+                $filename = date('YmdHi').'_'.$file->getClientOriginalName();
                 $file->move(public_path('documents/purchases/'), $filename);
                 $documents[] = 'documents/purchases/'.$filename;
             }
             $purchase->document = implode(',', $documents);
         }
+
+        // Save or update
+        $isNew = ! $request->id;
         $purchase->save();
 
-        return redirect()->route('allpurchases')->withStatus('Stock Added Successfully..');
+        return redirect()
+            ->route('allpurchases')
+            ->withStatus($isNew ? 'Stock Added Successfully...' : 'Stock Updated Successfully...');
     }
 
     public function deleteStock($id, Request $request)
     {
-        // $purchase = Purchase::findOrFail($id);
-        // // $purchase->delete();
-        // $purchase->deleted = 1;
-        // $purchase->update($purchase->deleted);
+        $purchase = Purchase::findOrFail($id);
+
+        if ($purchase->is_sold == 1) {
+            return redirect()->route('allpurchases')
+                ->with('error', 'Cannot delete a sold stock. Please delete the linked invoice first.');
+        }
 
         Purchase::where('id', $id)->update(['deleted' => 1]);
 
-        return redirect()->route('allpurchases')->withStatus('Stock Deleted Successfully..');
+        return redirect()->route('allpurchases')->withStatus('Stock Deleted Successfully.');
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        if (empty($ids)) {
+            return redirect()->route('allpurchases');
+        }
+
+        // Separate sold vs deletable stocks
+        $soldCount    = Purchase::whereIn('id', $ids)->where('is_sold', 1)->count();
+        $availableIds = Purchase::whereIn('id', $ids)->where('is_sold', 0)->where('deleted', 0)->pluck('id')->toArray();
+
+        if (!empty($availableIds)) {
+            Purchase::whereIn('id', $availableIds)->update(['deleted' => 1]);
+        }
+
+        $deletedCount = count($availableIds);
+
+        if ($soldCount > 0 && $deletedCount > 0) {
+            return redirect()->route('allpurchases')
+                ->with('error', "{$deletedCount} stock(s) deleted. {$soldCount} sold stock(s) were skipped — delete their linked invoice first.");
+        }
+
+        if ($soldCount > 0 && $deletedCount === 0) {
+            return redirect()->route('allpurchases')
+                ->with('error', 'Cannot delete sold stock(s). Please delete the linked invoice(s) first.');
+        }
+
+        return redirect()->route('allpurchases')->withStatus("{$deletedCount} stock(s) deleted successfully.");
     }
 
     public function editPurchase($id)
     {
         $purchase = Purchase::findOrFail($id);
 
-        return view('purchase.editpurchase', ['purchase' => $purchase]);
+        return view('purchase.newpurchase', ['purchase' => $purchase]);
     }
 
     public function updatePurchase(Request $request)
@@ -269,12 +315,8 @@ class PurchaseController extends Controller
             'model' => 'required',
             'imei' => 'required',
             'purchase_date' => 'required',
-            // 'color'=>'required',
             'storage' => 'required',
-            'purchase_from' => 'required',
-            // 'contactno'=>'required|max:12|min:10',
             'purchase_cost' => 'required',
-            // 'document'=>'required',
         ]);
         $purchase = Purchase::findOrFail($request->id);
         $purchase->model = $request->model;
@@ -296,11 +338,11 @@ class PurchaseController extends Controller
         if ($purchase->purchase_cost > 0) {
             $purchaseCost = $purchase->purchase_cost;
         }
-        $purchase->purchase_price = floatval($purchaseCost + $repairingCharge);
+        $purchase->purchase_price = (float) ($purchaseCost + $repairingCharge);
         $purchase->remark = $request->remark;
         $purchase->user_id = Auth::user()->id;
 
-        if ($request->file('document') != null && count($request->file('document')) > 0) {
+        if ($request->file('document') !== null && count($request->file('document')) > 0) {
             $purchase->document = $this->uploadFiles($request->file('document'));
         }
         $purchase->update();
@@ -312,7 +354,6 @@ class PurchaseController extends Controller
     public function uploadFiles($documents): string
     {
         foreach ($documents as $file) {
-            //  @unlink(public_path('documents/purchases/' . $file->getClientOriginalName()));
             $filename = time().$file->getClientOriginalName();
             $file->move(public_path('documents/purchases/'), $filename);
             $docs[] = $filename;
@@ -328,7 +369,6 @@ class PurchaseController extends Controller
 
     public function downloadStock(Request $request): void
     {
-        dd($_REQUEST);
         echo 'Download Stocks';
         exit;
     }
@@ -345,7 +385,7 @@ class PurchaseController extends Controller
             while (($data = fgetcsv($handle, 1000, ';')) !== false) {
                 $is_sold = $data[8] !== null && $data[8] !== '' && $data[8] !== '0' ? 1 : 0;
                 Purchase::create([
-                    'purchase_date' => \DateTime::createFromFormat('d.m.Y', $data[1])->format('Y-m-d'),
+                    'purchase_date' => DateTimeImmutable::createFromFormat('d.m.Y', $data[1])->format('Y-m-d'),
                     'imei' => $data[2],
                     'model' => $data[3],
                     'storage' => $data[4],
@@ -364,9 +404,60 @@ class PurchaseController extends Controller
             fclose($handle);
         }
 
-        // Excel::import(new ProductsImport, $file);
-        // dd($request);
         return redirect()->route('allpurchases')->withStatus('Stocks imported successfully.');
-        // die;
+    }
+
+    private function saveMultiplePurchases(Request $request)
+    {
+        $request->validate([
+            'model' => 'required',
+            'stock_items' => 'required|array|min:1',
+            'stock_items.*.imei' => 'required',
+            'stock_items.*.storage' => 'required',
+            'stock_items.*.color' => 'required',
+            'stock_items.*.purchase_cost' => 'required|numeric',
+        ]);
+
+        $now = Carbon::now();
+        $userId = Auth::id();
+        $purchaseDate = $request->purchase_date ?? $now->format('Y-m-d');
+
+        $purchasesData = [];
+        $totalCost = 0;
+
+        foreach ($request->stock_items as $stockItem) {
+            $purchaseCost = (float) ($stockItem['purchase_cost']);
+            $repairingCharge = (float) ($request->repairing_charge ?? 0);
+            $purchasePrice = $purchaseCost + $repairingCharge;
+
+            $totalCost += $purchasePrice;
+
+            $purchasesData[] = [
+                'device_type' => $request->device_type,
+                'model' => $request->model,
+                'purchase_date' => $purchaseDate,
+                'purchase_from' => $request->purchase_from ?? null,
+                'contactno' => $request->contactno ?? null,
+                'warrentydate' => $request->warrentydate ?? null,
+                'repairing_charge' => $repairingCharge,
+                'remark' => $request->remark ?? null,
+                'user_id' => $userId,
+                'imei' => $stockItem['imei'],
+                'color' => $stockItem['color'],
+                'storage' => $stockItem['storage'],
+                'purchase_cost' => $purchaseCost,
+                'purchase_price' => $purchasePrice,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        // ✅ Insert all purchases in one go (1 DB query)
+        $result = Purchase::insert($purchasesData);
+
+        $message = count($purchasesData)." stock items added successfully for model '"
+            .e($request->model)."' (Total Cost: ₹".number_format($totalCost, 2).')';
+
+        return redirect()->route('allpurchases')->withStatus($result ? $message : 'Failed to add stock items');
     }
 }
